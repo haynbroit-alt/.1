@@ -1,0 +1,55 @@
+# Où la mère lit chaque module. Lecture seule. Les chemins sont relatifs à la racine de ce dépôt ;
+# le premier candidat qui existe est retenu. Un dépôt absent donne des faits INCONNU, jamais une erreur.
+
+[depots]
+strat-ge-business = ["../Strat-ge-business", "../strat-ge-business"]
+novarys = ["../NOVARYS", "../novarys"]
+sovereign = ["../SOVEREIGN", "../sovereign"]
+hive = ["../Hive", "../hive"]
+velyx = ["../Velyx-prospection-", "../velyx-prospection-", "../haynbroit-alt/velyx-prospection-"]
+tr = ["../Tr", "../tr", "../haynbroit-alt/tr"]
+
+[fichiers]
+previsions = { depot = "strat-ge-business", chemin = "memoire/PREDICTIONS.csv" }
+tableau_novarys = { depot = "novarys", chemin = "registre/tableau.toml" }
+kpi_velyx = { depot = "velyx", chemin = "etat/kpi.json" }
+pipeline = { chemin = "prive/pipeline.csv" }
+couts = { chemin = "prive/couts.csv" }
+
+# Rejeu des suites de tests : réussi = code 0 ET ligne de bilan vue. Un rejeu ne vaut que pour son commit.
+[[rejeu]]
+nom = "strat-ge-business"
+depot = "strat-ge-business"
+commande = ["python3", "-I", "evals/test_outils.py"]
+bilan = '^OK( |$)'
+
+[[rejeu]]
+nom = "sovereign"
+depot = "sovereign"
+commande = ["uv", "run", "--locked", "pytest", "-o", "addopts=", "-q"]
+bilan = '^[1-9]\d* passed'
+
+[[rejeu]]
+nom = "novarys"
+depot = "novarys"
+commande = ["uv", "run", "--locked", "omega", "check"]
+bilan = '^OK :'
+
+[[rejeu]]
+nom = "hive"
+depot = "hive"
+# --no-project : rien n'est écrit dans le dépôt (ni verrou, ni environnement) pendant le rejeu.
+commande = ["uv", "run", "--no-project", "--with", "pytest", "--with", "httpx", "--with", "fastapi", "--with", "uvicorn", "--with", "python-multipart", "--", "python", "-m", "pytest", "-q"]
+bilan = '^[1-9]\d* passed'
+
+[[rejeu]]
+nom = "velyx"
+depot = "velyx"
+commande = ["node", "--test", "--test-reporter=tap", "test/*.test.js"]
+bilan = '^# pass [1-9]\d*'
+
+[[rejeu]]
+nom = "tr"
+depot = "tr"
+commande = ["node", "--test", "--test-reporter=tap", "test/*.test.js"]
+bilan = '^# pass [1-9]\d*'
