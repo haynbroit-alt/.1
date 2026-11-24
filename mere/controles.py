@@ -308,7 +308,7 @@ def prospects_contactes(evenements: list[Evenement] | None, domaines: dict[tuple
 
 
 def controler_prospect(p: Prospect, lire: Callable[[str], tuple[int, str]] = lire_url,
-                       domaines_messagerie: set[str] | None = None) -> Controle:
+                       domaines_messagerie: set[str] | None = None, opposable: bool = False) -> Controle:
     # `domaines_messagerie` : domaines relevés pour CETTE opportunité par le second lecteur.
     """Un prospect est réel si son adresse n'a pas rebondi ET si le site de son domaine répond (2xx ou 3xx). Le
     domaine écrit dans le pipeline doit figurer dans le second relevé de la messagerie quand il existe.
@@ -339,6 +339,11 @@ def controler_prospect(p: Prospect, lire: Callable[[str], tuple[int, str]] = lir
             continue
         codes.append(code)
         if 200 <= code < 400:
+            if not opposable:
+                # Le site existe, mais que le message soit parti à ce domaine n'est attesté que par des fichiers
+                # écrits hors de la mère : pas de PROUVÉ.
+                return Controle(**base, statut=INCONNU, detail=f"site joignable (HTTP {code}) ; destinataire confirmé "
+                                "par un relevé non opposable")
             return Controle(**base, statut=PROUVE, detail=f"site joignable (HTTP {code})")
     detail = f"site sans réponse exploitable (HTTP {', '.join(map(str, codes))})" if codes else \
         "site injoignable depuis cette machine"

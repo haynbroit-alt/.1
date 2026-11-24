@@ -117,8 +117,9 @@ propriétaire.
 | Un client a payé | lecture des paiements par la mère | grand livre du prestataire | `/v1/charges` contre `/v1/balance_transactions` : même paiement, même montant | CONFLIT |
 | L'argent est encaissé | prestataire (virement « versé ») | banque | virement retrouvé au crédit du relevé du propriétaire (`prive/banque.csv`), montant exact, ± 4 jours | INCONNU sans relevé, CONFLIT si absent |
 | Le paiement est acquis | prestataire | fiches de litige | litige ouvert : INCONNU ; perdu : retiré de l'encaissé | INCONNU |
-| Un prospect existe | pipeline | web public | aucun rebond, et le site de son domaine répond | ÉCHEC si rebond, INCONNU sinon |
-| Le pipeline est complet | agent qui l'a rempli | second lecteur de la messagerie | recomptage des envois, réponses, rebonds et défis anti-spam | CONFLIT |
+| Un prospect existe | pipeline | web public et lecture de la messagerie par la mère | aucun rebond, le site de son domaine répond, et le destinataire est relu par la mère elle-même | ÉCHEC si rebond ; INCONNU tant que la mère ne lit pas la messagerie |
+| Le pipeline est complet | agent qui l'a rempli | second lecteur de la messagerie | recomptage des envois, réponses, rebonds et défis anti-spam | CONFLIT si écart ; INCONNU si concordant, car un relevé fourni comme fichier n'est pas opposable |
+| Un verdict de prévision est juste | auteur du journal des prévisions | mesure de source externe (prestataire, banque) à la date du verdict | résultat saisi contre mesure ; un compte du pipeline ne confirme rien | CONFLIT si différent, INCONNU sans mesure externe |
 | Une note « mesuré » est vraie | auteur du portefeuille | page d'une autorité publique, ou d'un tiers reconnu dans le code (pas dans le portefeuille) | la phrase citée figure dans la page, relue dans ce passage. Un texte rédigé ne prouve rien ; un fichier de données de l'écosystème peut révéler un CONFLIT, jamais prouver | ÉCHEC, CONFLIT ou INCONNU |
 | La suite d'un module passe | le module | la mère, dans un clone neuf | deux exécutions du commit hors poste de travail, bilans concordants, au moins un test exécuté, dépôt d'origine inchangé | ÉCHEC, CONFLIT si discordant |
 | Un registre dit vrai | le module (NOVARYS, VELYX, poste business) | prestataire et pipeline | rapprochement à la même date, en instants UTC, sur le périmètre de la déclaration | CONFLIT |

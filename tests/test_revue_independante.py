@@ -242,7 +242,9 @@ class ControlesIndependants(unittest.TestCase):
     def test_prospects(self) -> None:
         p = controles.Prospect("o", "r1", "exemple.invalid", False)
         vus = {"exemple.invalid"}
-        self.assertEqual(controles.controler_prospect(p, lambda u: (200, ""), vus).statut, PROUVE)
+        self.assertEqual(controles.controler_prospect(p, lambda u: (200, ""), vus, opposable=True).statut, PROUVE)
+        self.assertEqual(controles.controler_prospect(p, lambda u: (200, ""), vus).statut, INCONNU,
+                         "relevé de la messagerie fourni hors de la mère : non opposable")
         self.assertEqual(controles.controler_prospect(p, lambda u: (200, "")).statut, INCONNU,
                          "sans second relevé, le domaine écrit par l'auteur n'est pas confirmé")
 
@@ -620,6 +622,8 @@ class CinquiemeRevue(unittest.TestCase):
                 self.assertNotEqual(r.etats["a"][etape][0], PROUVE)
 
     def test_b3_un_verdict_saisi_doit_concorder_avec_la_mesure(self) -> None:
+        from test_bout_en_bout import BoutEnBout
+
         from mere.tableau import construire
         with tempfile.TemporaryDirectory() as d:
             racine = self.racine(d)
@@ -628,9 +632,10 @@ class CinquiemeRevue(unittest.TestCase):
                             "P-1;2026-11-22;x;u;1;2;3;5;plus\n", encoding="utf-8")
             p = racine / "donnees/portefeuille.toml"
             p.write_text(p.read_text(encoding="utf-8").replace('[reglages]\ndevise = "eur"',
-                         '[reglages]\ndevise = "eur"\n[reglages.indicateurs_previsions]\n"P-1" = "reponses"'),
+                         '[reglages]\ndevise = "eur"\n[reglages.indicateurs_previsions]\n"P-1" = "ventes_payees"'),
                          encoding="utf-8")
-            r = construire(racine, date(2026, 11, 24))
+            # Une vente réelle relue au prestataire ; le verdict saisi en annonce 5.
+            r = construire(racine, date(2026, 11, 24), lire_stripe=True, client=BoutEnBout().faux().client())
         self.assertEqual(next(c for c in r.controles if c.id == "verdict:P-1").statut, CONFLIT)
         self.assertNotEqual(r.etats["a"]["amelioration"][0], PROUVE)
 
@@ -649,4 +654,44 @@ class CinquiemeRevue(unittest.TestCase):
         officiel = controles.controler_citation("o", "d", {**verif, "url": "https://entreprendre.service-public.gouv.fr/x"},
                                                 {}, page)
         self.assertEqual((consultation.statut, officiel.statut), (ECHEC, PROUVE))
+
+
+class SixiemeRevue(unittest.TestCase):
+    """Non-régression des deux derniers chemins de la 6ᵉ revue (C1, C2) : les fichiers de l'auteur ne prouvent rien."""
+
+    def test_c1_un_verdict_confirme_par_un_compte_de_l_auteur_reste_inconnu(self) -> None:
+        from test_bout_en_bout import BoutEnBout
+
+        from mere.tableau import construire
+        with tempfile.TemporaryDirectory() as d:
+            racine = BoutEnBout().preparer(Path(d))
+            (Path(d) / "strat/memoire/PREDICTIONS.csv").write_text(
+                "id;date_verdict;libelle;unite;bas;central;haut;reel;sens\nP-1;2026-11-22;x;u;1;2;3;0;plus\n",
+                encoding="utf-8")
+            p = racine / "donnees/portefeuille.toml"
+            p.write_text(p.read_text(encoding="utf-8").replace('[reglages]\ndevise = "eur"',
+                         '[reglages]\ndevise = "eur"\n[reglages.indicateurs_previsions]\n"P-1" = "reponses"'),
+                         encoding="utf-8")
+            r = construire(racine, date(2026, 11, 24))
+        self.assertEqual(next(c for c in r.controles if c.id == "verdict:P-1").statut, INCONNU)
+        self.assertNotEqual(r.etats["a"]["amelioration"][0], PROUVE)
+
+    def test_c2_un_second_releve_fourni_a_la_main_ne_prouve_ni_prospect_ni_acheteur(self) -> None:
+        from test_bout_en_bout import BoutEnBout
+
+        from mere.tableau import construire
+        with tempfile.TemporaryDirectory() as d:
+            racine = BoutEnBout().preparer(Path(d))
+            (racine / "prive/pipeline.csv").write_text(
+                "date;opportunite;ref;etape;canal;preuve;domaine\n2026-11-21T10:00;a;r1;envoi;email;x;insee.fr\n"
+                "2026-11-22T10:00;a;r1;reponse;email;x;insee.fr\n2026-11-22T11:00;a;r1;qualifie;email;x;insee.fr\n",
+                encoding="utf-8")
+            (racine / "prive/recomptage_messagerie.json").write_text(json.dumps(
+                {"lecteur": "relecteur", "source": "lecture-directe-mere", "passage": "2026-11-24T00:00:00+00:00",
+                 "envois": {"a": 1}, "reponses": 1, "rebonds": 0, "defis_antispam": 0,
+                 "domaines": {"a": ["insee.fr"]}}), encoding="utf-8")
+            r = construire(racine, date(2026, 11, 24), controler=True, lire_url=lambda u: (200, ""))
+        self.assertEqual(next(c for c in r.controles if c.id == "pipeline:recomptage").statut, INCONNU)
+        self.assertNotEqual(r.etats["a"]["acheteur"][0], PROUVE)
+        self.assertNotEqual(chaine.lire(r.consolide, "a", "prospects_reels").statut, PROUVE)
 

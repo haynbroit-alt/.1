@@ -21,6 +21,7 @@ Chaque chiffre est étiqueté : [mesuré] avec sa source, [hypothèse] ou [calcu
 | 6 | Activer un compteur de visites gratuit sur le portail et les pages d'offre | Visiteurs INCONNU partout [mesuré] | Le haut de l'entonnoir | 10 min |
 | 7 | Dès le premier virement du prestataire : déposer l'export du relevé bancaire dans `.1/prive/banque.csv` (date;libelle;montant) | La banque est le seul contrôleur indépendant de l'encaissement : sans relevé, « encaissé » reste INCONNU | La preuve du premier euro | 2 min par mois |
 | 8 | Dire oui ou non à une relecture par un autre modèle (Codex, compte OpenAI requis) | Aujourd'hui, le relecteur indépendant est du même modèle que l'auteur | Une indépendance plus forte du contrôle du code | 5 min |
+| 10 | Donner à la mère un accès en **lecture seule** à la messagerie (jeton restreint, ajouté comme secret de l'environnement) | Aujourd'hui, seul un agent lit la messagerie, et la mère reçoit son relevé comme un fichier. Celui-ci n'est pas opposable : les étapes « acheteur » et « prospects réels » restent INCONNUES | Les premières preuves commerciales avant le paiement | 10 min |
 | 9 | Autoriser l'écriture dans le dépôt VELYX, ou corriger soi-même son test daté | Sa suite est rouge depuis le 23/11 (audit, § 4) | Le produit VELYX de nouveau PROUVÉ | 10 min |
 
 ## Étape 1 : jusqu'aux verdicts (25/11 au 06/12)

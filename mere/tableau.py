@@ -137,12 +137,14 @@ def construire(racine: Path, jour: date, lire_stripe: bool = False, rejouer: boo
     prospects = controles.prospects_contactes(evenements, domaines)
     recompte = racine / "prive/recomptage_messagerie.json"
     rc = json.loads(recompte.read_text(encoding="utf-8")) if recompte.is_file() else None
+    passage_id = datetime.now(UTC).isoformat(timespec="seconds")  # aucun fichier ne connaît ce passage à l'avance
+    opposable = bool(rc) and rc.get("source") == "lecture-directe-mere" and rc.get("passage") == passage_id
     # 7 : les domaines du second relevé valent pour leur opportunité seulement.
     vus_messagerie = ({str(o): {str(d).lower() for d in liste} for o, liste in (rc.get("domaines") or {}).items()}
                       if rc and rc.get("domaines") else None)
     if controler:
         ctrl_prospects = [controles.controler_prospect(p, lecteur_url, None if vus_messagerie is None else
-                                                       vus_messagerie.get(p.opportunite, set()))
+                                                       vus_messagerie.get(p.opportunite, set()), opposable)
                           for p in prospects]
         controles.instantane(ctrl_prospects, prive_ctrl)
     else:
@@ -188,6 +190,8 @@ def construire(racine: Path, jour: date, lire_stripe: bool = False, rejouer: boo
 
     # Recomptage indépendant de la messagerie (un second lecteur, pas l'agent qui a rempli le pipeline).
     lecteur = str((rc or {}).get("lecteur", "recomptage-independant"))
+    # Le second relevé arrive comme un fichier : la mère ne lit pas la messagerie elle-même. Il peut révéler un écart
+    # (CONFLIT), jamais prouver ; seule une lecture directe par la mère, dans ce passage, le rendrait opposable.
     if rc is not None and controles._racine(lecteur) == "pipeline":
         ctrls.append(controles.Controle("pipeline:recomptage", "Le pipeline contient tous les envois de la messagerie",
                                         "pipeline", "recomptage-independant", "second relevé de la messagerie", ECHEC,
@@ -206,9 +210,11 @@ def construire(racine: Path, jour: date, lire_stripe: bool = False, rejouer: boo
         ctrls.append(controles.Controle(
             "pipeline:recomptage", "Le pipeline contient tous les envois, réponses et rebonds de la messagerie",
             "pipeline", lecteur,
-            "second relevé de la messagerie par un autre lecteur", CONFLIT if ecarts else PROUVE,
+            "second relevé de la messagerie par un autre lecteur",
+            CONFLIT if ecarts else (PROUVE if opposable else INCONNU),
             "écarts (second relevé, pipeline) : " + ", ".join(f"{k} {v}" for k, v in sorted(ecarts.items()))
-            if ecarts else "envois, réponses, rebonds et défis concordants", str(rc.get("date", ""))))
+            if ecarts else ("envois, réponses, rebonds et défis concordants" + ("" if opposable else
+                            " ; relevé fourni hors de la mère : non opposable")), str(rc.get("date", ""))))
     else:
         ctrls.append(controles.Controle("pipeline:recomptage", "Le pipeline contient tous les envois de la messagerie",
                                         "pipeline", "recomptage-independant", "second relevé de la messagerie", INCONNU,
@@ -403,7 +409,11 @@ def construire(racine: Path, jour: date, lire_stripe: bool = False, rejouer: boo
         return None
 
     arrets = {o.id: chaine.evaluer_arrets(o, consolide, jour, previsions, mesure_a_date) for o in opportunites}
-    # Amélioration : un verdict saisi par l'auteur n'est PROUVÉ que s'il concorde avec la mesure de la mère.
+    # Amélioration : un verdict saisi par l'auteur n'est PROUVÉ que s'il concorde avec une mesure de source externe
+    # (prestataire de paiement, banque), relue dans ce passage. Un compte du pipeline, écrit lui aussi par l'auteur,
+    # ne confirme rien.
+    externes = {"ventes_payees", "encaisse_net", "credite_en_banque", "abonnements_actifs", "remboursements",
+                "paiements_echoues", "offres_actives"}
     a_mesurer = {str(k): str(v) for k, v in (reglages.get("indicateurs_previsions") or {}).items()}
     for p in previsions or []:
         if p.reel is None or not p.date_verdict:
@@ -412,6 +422,8 @@ def construire(racine: Path, jour: date, lire_stripe: bool = False, rejouer: boo
         ind = a_mesurer.get(p.id)
         if ind is None:
             statut, detail = INCONNU, "verdict saisi par l'auteur, sans indicateur pour le confirmer"
+        elif ind not in externes:
+            statut, detail = INCONNU, f"{ind} est écrit par l'auteur du pipeline : il ne peut pas confirmer un verdict"
         else:
             m = mesure_a_date(opp, ind, date.fromisoformat(p.date_verdict)) if opp != TOUTE_L_ENTREPRISE else None
             v = chaine.lire(consolide, opp, ind) if m is None else chaine.Valeur(m[0], m[1])

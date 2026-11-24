@@ -159,9 +159,12 @@ de l'auteur passaient tous. La revue a pourtant trouvé :
   la mère (rejeux enregistrés, instantané du prestataire) ou par des fichiers de l'auteur (verdict saisi, domaine
   tapé). Une lecture ne vaut désormais que dans le passage qui l'a faite. Un verdict saisi doit concorder avec la
   mesure. Un domaine doit être confirmé par le second relevé de la messagerie.
-- **6ᵉ revue** : voir `journal/C-0002.md`.
+- **6ᵉ revue : 5 chemins sur 6 fermés.** Deux chemins restaient ouverts : un verdict « confirmé » par un compte du
+  pipeline, et un second relevé de la messagerie fourni comme fichier. Ils sont fermés à leur tour. En
+  conséquence, l'étape « acheteur » reste INCONNUE tant que la mère ne lit pas elle-même la messagerie.
+- **7ᵉ revue** : voir `journal/C-0002.md`.
 
-Chaque défaut a son test de non-régression (`tests/test_revue_independante.py`, f01 à f19, n01 à n10, t1 à t7, a1 à a4, b1 à b5).
+Chaque défaut a son test de non-régression (`tests/test_revue_independante.py`, f01 à f19, n01 à n10, t1 à t7, a1 à a4, b1 à b5, c1 et c2).
 Ces tests ont été rejoués contre le code d'avant correction : ils y échouent bien. Le détail des erreurs, de leurs causes et
 des corrections est dans `journal/C-0002.md`.
 

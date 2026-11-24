@@ -143,7 +143,8 @@ class BoutEnBout(unittest.TestCase):
             with (racine / "prive/pipeline.csv").open("a", encoding="utf-8") as f:
                 f.write("2026-11-22T11:00;a;r2;rebond;email;gmail:3\n")
             r = construire(racine, date(2026, 11, 24))
-        self.assertEqual(next(c for c in r.controles if c.id == "pipeline:recomptage").statut, "PROUVÉ")
+        # Concordant, mais fourni hors de la mère : jamais PROUVÉ (seul un écart, CONFLIT, est opposable).
+        self.assertEqual(next(c for c in r.controles if c.id == "pipeline:recomptage").statut, "INCONNU")
 
     def test_fuite_refusee(self) -> None:
         with tempfile.TemporaryDirectory() as d:
