@@ -235,7 +235,8 @@ class ControlesIndependants(unittest.TestCase):
                                                                    "valeur": 59}, depots)
             prose = controles.controler_citation("o", "potentiel", {"depot": "x", "fichier": "etude.md", "cle": "x"},
                                                  depots)
-        self.assertEqual((faux.statut, vrai.statut, prose.statut), (CONFLIT, PROUVE, ECHEC))
+        # Des données internes peuvent contredire une note (CONFLIT), jamais la prouver seules (A2).
+        self.assertEqual((faux.statut, vrai.statut, prose.statut), (CONFLIT, INCONNU, ECHEC))
         self.assertEqual(controles.controler_citation("o", "demande", {}, {}).statut, INCONNU)
 
     def test_prospects(self) -> None:
@@ -431,9 +432,9 @@ class TroisiemeRevue(unittest.TestCase):
                 self.assertEqual(c.statut, ECHEC)
         autorite = controles.controler_citation("o", "d", {**verif, "url": "https://entreprendre.service-public.gouv.fr/x"},
                                                 {}, self.page)
-        tiers = controles.controler_citation("o", "d", {**verif, "url": "https://www.cndt.fr/x"}, {}, self.page,
-                                             tiers=("cndt.fr",))
-        self.assertEqual((autorite.statut, tiers.statut), (PROUVE, PROUVE))
+        reconnu = controles.controler_citation(
+            "o", "d", {**verif, "url": "https://centre-national-droit-du-travail.fr/x"}, {}, self.page)
+        self.assertEqual((autorite.statut, reconnu.statut), (PROUVE, PROUVE))
 
     def test_t2_donnees_non_versionnees_et_valeur_privee_par_defaut(self) -> None:
         import subprocess
@@ -449,7 +450,7 @@ class TroisiemeRevue(unittest.TestCase):
             versionne = controles.controler_citation("o", "d", {"depot": "x", "fichier": "s.json", "cle": "ca",
                                                                 "min": 1}, {"x": racine})
         self.assertEqual(hors_git.statut, INCONNU)
-        self.assertEqual(versionne.statut, PROUVE)
+        self.assertEqual(versionne.statut, INCONNU, "données internes : pas un contrôleur indépendant")
         self.assertNotIn("123400", versionne.detail + versionne.reference)
 
     def test_t3_un_controle_relu_ne_vaut_que_pour_la_meme_verification(self) -> None:
@@ -529,3 +530,56 @@ class TroisiemeRevue(unittest.TestCase):
             e = controles.empreinte(texte)
             self.assertEqual((len(e), garde.fuites(e)), (12, []))
             self.assertFalse(any(ch.isdigit() for ch in e))
+
+
+class QuatriemeRevue(unittest.TestCase):
+    """Non-régression des brèches résiduelles trouvées par la quatrième revue indépendante (A1 à A4)."""
+
+    page = staticmethod(lambda url: (200, "<p>Affichages ou diffusions obligatoires</p>"))
+    verif = {"contient": "Affichages ou diffusions obligatoires"}
+
+    def test_a1_le_producteur_ne_peut_pas_se_declarer_tiers(self) -> None:
+        propre = controles.controler_citation("o", "d", {**self.verif, "url": "https://novarys.fr/preuve"}, {},
+                                              self.page, tiers=("novarys.fr",))
+        jeu = controles.controler_citation("o", "d", {**self.verif, "url": "https://www.data.gouv.fr/fr/datasets/x/"},
+                                           {}, self.page)
+        self.assertEqual((propre.statut, jeu.statut), (ECHEC, ECHEC))
+
+    def test_a2_un_fichier_interne_ne_prouve_jamais_seul(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "s.json").write_text('{"n": 38}', encoding="utf-8")
+            c = controles.controler_citation("o", "d", {"depot": "x", "fichier": "s.json", "cle": "n", "valeur": 38},
+                                             {"x": versionner(d)})
+        self.assertEqual(c.statut, INCONNU)
+
+    def test_a3_un_controle_en_cache_n_est_jamais_prouve(self) -> None:
+        import tempfile as tf
+
+        from test_bout_en_bout import BoutEnBout
+
+        from mere.tableau import construire
+        with tf.TemporaryDirectory() as d:
+            racine = BoutEnBout().preparer(Path(d))
+            p = racine / "donnees/portefeuille.toml"
+            verif = {"url": "https://raw.githubusercontent.com/x/y/main/note.md", "contient": "marché très porteur"}
+            p.write_text(p.read_text(encoding="utf-8").replace(
+                'demande = { note = 4, nature = "mesuré", source = "registre" }',
+                'demande = { note = 4, nature = "mesuré", source = "registre", verif = { url = "'
+                + verif["url"] + '", contient = "' + verif["contient"] + '" } }'), encoding="utf-8")
+            forge = controles.Controle("citation:a/demande", "o", "portefeuille", "page-publique", "m", PROUVE,
+                                       "phrase trouvée", "2099-01-01T00:00:00+00:00",
+                                       f"{verif['url']} · signature {controles.signature(verif)}", opportunite="a")
+            (racine / "etat/controles.json").write_text(json.dumps([forge.to_dict()]), encoding="utf-8")
+            r = construire(racine, date(2026, 11, 24))
+        self.assertEqual(next(c for c in r.controles if c.id == "citation:a/demande").statut, INCONNU)
+        self.assertNotEqual(r.etats["a"]["opportunite"][0], PROUVE)
+
+    def test_a4_entrees_perimees_ou_sans_fuseau_sans_plantage(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "c.json"
+            base = {"objet": "o", "producteur": "a", "controleur": "b", "methode": "m", "statut": PROUVE, "detail": "d"}
+            p.write_text(json.dumps([{**base, "id": "citation:x", "date": "2020-01-01T00:00:00+00:00", "version": 2},
+                                     {**base, "id": "citation:y", "date": "2026-11-01T10:00:00"}]), encoding="utf-8")
+            relus = controles.relire(p, ("citation:",))
+        self.assertEqual([(c.id, c.statut) for c in relus], [("citation:x", INCONNU), ("citation:y", INCONNU)])
+

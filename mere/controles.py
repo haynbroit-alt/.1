@@ -26,7 +26,7 @@ import urllib.parse
 import urllib.request
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -37,9 +37,13 @@ AGENT = "Mozilla/5.0 (compatible; verification-entreprise-mere)"
 FICHIERS_DE_DONNEES = (".json", ".csv")
 # Une page ne prouve une note que si elle vient d'une autorité publique, ou d'un tiers nommé dans le portefeuille
 # (réglage « sources_tierces »), et jamais d'un hébergeur où le producteur peut publier lui-même.
-AUTORITES = ("gouv.fr", "service-public.fr", "legifrance.gouv.fr", "insee.fr", "data.gouv.fr", "europa.eu",
-             "urssaf.fr", "cnil.fr", "inpi.fr", "infogreffe.fr", "banque-france.fr", "bpifrance.fr")
-HOTES_REFUSES = ("github.com", "githubusercontent.com", "gitlab.com", "gist.", "pastebin.", "bitbucket.org",
+AUTORITES = ("gouv.fr", "service-public.fr", "legifrance.gouv.fr", "insee.fr", "europa.eu", "urssaf.fr", "cnil.fr",
+             "inpi.fr", "infogreffe.fr", "banque-france.fr", "bpifrance.fr")
+# Tiers reconnus : la liste vit dans le code, pas dans le portefeuille du producteur. L'allonger est un changement de
+# code, donc relu par un autre agent et prouvé par NOVARYS Ω avant de compter.
+TIERS_RECONNUS = ("centre-national-droit-du-travail.fr",)
+HOTES_REFUSES = ("data.gouv.fr", "github.com", "githubusercontent.com", "gitlab.com", "gist.", "pastebin.",
+                 "bitbucket.org",
                  "github.io", "pages.dev", "workers.dev", "notion.site", "docs.google.com", "sites.google.com",
                  "jsdelivr.net", "netlify.app", "vercel.app", "onrender.com", "herokuapp.com", "glitch.me",
                  "replit.", "wixsite.com", "webflow.io", "framer.", "carrd.co", "canva.site", "myshopify.com",
@@ -104,12 +108,14 @@ def lire_url(url: str, delai: int = 20) -> tuple[int, str]:
 
 # -- Citations : la source citée dit-elle vraiment ce que la note affirme ? -------------------------------
 
-def _hote_autorise(hote: str, tiers: tuple[str, ...]) -> bool:
+def _hote_autorise(hote: str, tiers: tuple[str, ...] = ()) -> bool:
+    """`tiers` n'élargit rien : seuls les tiers déjà reconnus par le code sont retenus (le portefeuille ne peut pas
+    déclarer sa propre page comme source)."""
     def couvre(domaine: str) -> bool:
         return hote == domaine or hote.endswith("." + domaine)
-    if any(r in hote for r in HOTES_REFUSES):
+    if any(r in hote for r in HOTES_REFUSES):  # data.gouv.fr : tout compte peut y publier
         return False
-    return any(couvre(a) for a in AUTORITES) or any(couvre(t) for t in tiers)
+    return any(couvre(a) for a in AUTORITES) or any(couvre(t) for t in TIERS_RECONNUS if t in tiers or not tiers)
 
 
 def empreinte(texte: str) -> str:
@@ -205,9 +211,12 @@ def controler_citation(oid: str, critere: str, verif: dict[str, Any], depots: di
         commit = _git(base_depot, "rev-parse", "HEAD")[:12]
         # Le nombre lu n'est publié que si la note le déclare public (statistique agrégée) : il pourrait être privé.
         lu = f"{valeur!r}" if verif.get("public") is True else "valeur en privé"
+        # Un fichier d'un autre dépôt de l'écosystème a été écrit par la même lignée d'acteurs : il peut contredire
+        # une note (CONFLIT), jamais la prouver seul. Il faut une source externe pour PROUVÉ.
         return Controle(**base, controleur="donnees", methode=f"{verif['cle']} relu dans le fichier versionné",
-                        statut=PROUVE if ok else CONFLIT,
-                        detail=(f"{lu} conforme" if ok else f"le fichier dit {lu}, la note suppose autre chose"),
+                        statut=INCONNU if ok else CONFLIT,
+                        detail=(f"{lu} conforme aux données internes ; ce n'est pas une source indépendante" if ok
+                                else f"le fichier dit {lu}, la note suppose autre chose"),
                         reference=f"{verif.get('depot')}@{commit}:{chemin_rel}{sig}")
     return Controle(**base, controleur="aucun", methode="aucune", statut=INCONNU,
                     detail="note « mesuré » sans source vérifiable : comptée comme une hypothèse")
@@ -483,11 +492,12 @@ def instantane(controles: list[Controle], chemin: Path) -> None:
                       encoding="utf-8")
 
 
-def relire(chemin: Path, ids_prefixes: tuple[str, ...], max_age_jours: int = 7) -> list[Controle]:
-    """Relit les contrôles réseau du dernier passage ; au-delà de `max_age_jours`, ils deviennent INCONNU."""
+def relire(chemin: Path, ids_prefixes: tuple[str, ...]) -> list[Controle]:
+    """Relit les contrôles d'un passage précédent, pour mémoire seulement : un contrôle relu n'est jamais PROUVÉ.
+    Le fichier est la mémoire de la mère, modifiable : s'y fier serait se valider soi-même. Un CONFLIT ou un ÉCHEC
+    relu reste affiché (une contradiction connue ne s'efface pas en ne relançant pas le contrôle)."""
     if not chemin.is_file():
         return []
-    limite = datetime.now(UTC) - timedelta(days=max_age_jours)
     sortie = []
     try:
         entrees = json.loads(chemin.read_text(encoding="utf-8"))
@@ -499,10 +509,10 @@ def relire(chemin: Path, ids_prefixes: tuple[str, ...], max_age_jours: int = 7) 
             continue
         try:
             c = Controle(**{k: v for k, v in d.items() if k in champs})
-            datetime.fromisoformat(c.date)
+            if c.statut == PROUVE:
+                c = Controle(**{**c.to_dict(), "statut": INCONNU,
+                                "detail": f"PROUVÉ au passage du {str(c.date)[:10]}, non refait dans ce passage"})
         except (TypeError, ValueError):
             continue  # entrée illisible ou auto-validée : ignorée, le contrôle sera refait
-        if c.statut == PROUVE and datetime.fromisoformat(c.date) < limite:
-            c = Controle(**{**d, "statut": INCONNU, "detail": f"contrôle périmé ({c.date[:10]}) : à refaire"})
         sortie.append(c)
     return sortie

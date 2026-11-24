@@ -115,7 +115,7 @@ def construire(racine: Path, jour: date, lire_stripe: bool = False, rejouer: boo
                 c = controles.controler_citation(o.id, k, note.verif, depots, lecteur_url, tiers)
             else:
                 c = anciens.get(cid)
-                # 3 : un contrôle relu ne vaut que pour la même façon de vérifier (même url, même phrase).
+                # Un contrôle relu ne vaut que pour la même façon de vérifier, et il n'est jamais PROUVÉ.
                 if c is not None and not c.reference.endswith(f"signature {controles.signature(note.verif)}"):
                     c = None
                 c = c or controles.Controle(

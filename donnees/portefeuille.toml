@@ -11,8 +11,8 @@
 
 [reglages]
 devise = "eur"
-# Tiers indépendants du producteur dont une page peut prouver une note (en plus des autorités publiques).
-sources_tierces = ["centre-national-droit-du-travail.fr"]
+# Les tiers dont une page peut prouver une note sont reconnus dans le code (mere/controles.py, TIERS_RECONNUS), pas
+# ici : le producteur ne choisit pas lui-même ses contrôleurs.
 montants_publics = ["39"]  # prix publics cités dans les libellés de prévision (pas des montants encaissés)
 
 # ------------------------------------------------------------------------------------------------------------
