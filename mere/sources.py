@@ -22,22 +22,25 @@ from typing import Any
 from .faits import TOUTE_L_ENTREPRISE, Fait
 from .statuts import ECHEC, INCONNU, PROUVE
 
-ETAPES_PIPELINE = ("envoi", "relance", "bloque", "reponse", "reponse_positive", "qualifie", "proposition",
-                   "gagne", "perdu")
-REPONDU = {"reponse", "reponse_positive", "qualifie", "proposition", "gagne", "perdu"}
+ETAPES_PIPELINE = ("envoi", "relance", "bloque", "rebond", "reponse", "reponse_positive", "refus", "qualifie",
+                   "proposition", "gagne", "perdu")
+# « perdu » clôt un prospect sans dire qu'il a répondu ; « refus » est une réponse négative explicite.
+REPONDU = {"reponse", "reponse_positive", "refus", "qualifie", "proposition", "gagne"}
 QUALIFIE = {"qualifie", "proposition", "gagne"}
 DATE_FR = re.compile(r"(\d{2})/(\d{2})/(\d{4})")
 
 
 @dataclass(frozen=True)
 class Declaration:
-    """Une valeur cumulée déclarée par un module à une date (ex. « 0 € encaissé au 21/11 »)."""
+    """Une valeur cumulée déclarée par un module à une date (ex. « 0 € encaissé au 21/11 »).
+    `perimetre` : « * » si la valeur couvre toute l'entreprise, sinon le module dont elle ne couvre que l'activité."""
 
     module: str
     indicateur: str
     valeur: int
     date: str
     source: str
+    perimetre: str = "*"
 
 
 @dataclass(frozen=True)
@@ -48,6 +51,7 @@ class Evenement:
     etape: str
     canal: str
     preuve: str
+    domaine: str = ""
 
 
 def _lire(chemin: Path | None) -> str | None:
@@ -56,6 +60,30 @@ def _lire(chemin: Path | None) -> str | None:
     try:
         return chemin.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
+        return None
+
+
+def instant(texte: str) -> datetime | None:
+    """Instant UTC d'une date ISO (« T » ou espace, avec ou sans fuseau ; sans fuseau = UTC).
+    Une date seule (sans heure) renvoie None : l'heure n'est pas connue."""
+    t = (texte or "").strip().replace("Z", "+00:00")
+    if len(t) <= 10:
+        return None
+    try:
+        d = datetime.fromisoformat(t.replace(" ", "T", 1))
+    except ValueError:
+        return None
+    return d.replace(tzinfo=UTC) if d.tzinfo is None else d.astimezone(UTC)
+
+
+def jour_de(texte: str) -> date | None:
+    """Jour UTC d'une date ou d'un instant ISO ; None si illisible."""
+    i = instant(texte)
+    if i is not None:
+        return i.date()
+    try:
+        return date.fromisoformat((texte or "").strip()[:10])
+    except ValueError:
         return None
 
 
@@ -69,11 +97,14 @@ def euros_en_centimes(texte: str) -> int:
     propre = (texte or "").replace("€", "").replace(" ", "").replace("\xa0", "").replace(" ", "")
     propre = propre.replace(",", ".")
     try:
+        if not re.fullmatch(r"-?\d+(?:\.\d{1,2})?", propre):
+            raise InvalidOperation  # ni exposant, ni infini, ni plus de deux décimales
         valeur = Decimal(propre)
-    except InvalidOperation as exc:
-        raise ValueError(f"montant illisible : {texte!r}") from exc
-    if valeur != valeur.quantize(Decimal("0.01")):
-        raise ValueError(f"plus de deux décimales : {texte!r}")
+        if not valeur.is_finite() or valeur != valeur.quantize(Decimal("0.01")):
+            raise InvalidOperation
+    except (InvalidOperation, ValueError) as exc:
+        # Le contenu de la cellule n'est jamais recopié dans le message : il peut être privé.
+        raise ValueError("montant illisible ou à plus de deux décimales") from exc
     return int(valeur * 100)
 
 
@@ -88,31 +119,52 @@ class Prevision:
     central: float | None
     reel: float | None
     sens: str
+    haut: float | None = None
 
 
-def lire_previsions(chemin: Path | None) -> list[Prevision] | None:
+def lire_previsions(chemin: Path | None, erreurs: list[str] | None = None,
+                    rejetees: list[str] | None = None) -> list[Prevision] | None:
+    """Prévisions du poste business. Une ligne illisible est rejetée et signalée, jamais devinée."""
     texte = _lire(chemin)
     if texte is None:
         return None
 
     def nombre(v: str) -> float | None:
         v = (v or "").strip().replace(",", ".")
-        return float(v) if v else None
+        if not v:
+            return None
+        x = float(v)
+        if x != x or x in (float("inf"), float("-inf")):
+            raise ValueError("nombre non fini")
+        return x
 
     sortie = []
-    for ligne in csv.DictReader(io.StringIO(texte), delimiter=";"):
+    for n, ligne in enumerate(csv.DictReader(io.StringIO(texte.lstrip("\ufeff")), delimiter=";"), 2):
         if not (ligne.get("id") or "").strip():
             continue
-        sortie.append(Prevision(ligne["id"].strip(), (ligne.get("date_verdict") or "").strip(),
-                                (ligne.get("libelle") or "").strip(), nombre(ligne.get("bas", "")),
-                                nombre(ligne.get("central", "")), nombre(ligne.get("reel", "")),
-                                (ligne.get("sens") or "plus").strip()))
+        try:
+            jour = (ligne.get("date_verdict") or "").strip()
+            date.fromisoformat(jour)
+            sens = (ligne.get("sens") or "plus").strip()
+            if sens not in ("plus", "moins"):
+                raise ValueError("sens attendu : plus ou moins")
+            p = Prevision(ligne["id"].strip(), jour, (ligne.get("libelle") or "").strip(), nombre(ligne.get("bas", "")),
+                          nombre(ligne.get("central", "")), nombre(ligne.get("reel", "")), sens,
+                          nombre(ligne.get("haut", "")))
+        except ValueError:
+            if erreurs is not None:
+                erreurs.append(f"prévisions ligne {n} : date, nombre ou sens illisible")
+            if rejetees is not None:
+                rejetees.append(ligne["id"].strip())
+            continue
+        sortie.append(p)
     return sortie
 
 
 def faits_verdicts(previsions: list[Prevision] | None, rattachement: dict[str, str], jour: date,
-                   source: str) -> list[Fait]:
-    """Boucle d'amélioration : une prévision échue sans résultat réel écrit est un ÉCHEC du processus."""
+                   source: str, rejetees: list[str] | None = None) -> list[Fait]:
+    """Boucle d'amélioration : une prévision échue sans résultat réel écrit est un ÉCHEC du processus. Une prévision
+    illisible n'est pas une prévision absente : l'opportunité qu'elle concerne passe en INCONNU."""
     if previsions is None:
         return [Fait("strat-ge-business", "verdicts_dus", None, INCONNU, source, note="fichier illisible")]
     dus: dict[str, list[Prevision]] = defaultdict(list)
@@ -128,9 +180,13 @@ def faits_verdicts(previsions: list[Prevision] | None, rattachement: dict[str, s
         preuve = f"{source} relu le {jour.isoformat()}"
         faits.append(Fait("strat-ge-business", "verdicts_dus", len(liste), PROUVE, source, cle,
                           jour.isoformat(), preuve))
-        faits.append(Fait("strat-ge-business", "verdicts_rendus", len(rendus), ECHEC if manquants else PROUVE,
-                          source, cle, jour.isoformat(), preuve,
-                          note=("verdict non rendu : " + ", ".join(manquants)) if manquants else ""))
+        illisibles = [pid for pid in rejetees or [] if cle in (TOUTE_L_ENTREPRISE, rattachement.get(pid))]
+        statut = ECHEC if manquants else (INCONNU if illisibles else PROUVE)
+        notes = [("verdict non rendu : " + ", ".join(manquants)) if manquants else "",
+                 ("prévision illisible : " + ", ".join(illisibles)) if illisibles else ""]
+        faits.append(Fait("strat-ge-business", "verdicts_rendus", len(rendus) if statut != INCONNU else None, statut,
+                          source, cle, jour.isoformat(), preuve if statut == PROUVE else "",
+                          note="; ".join(n for n in notes if n)))
     return faits
 
 
@@ -153,13 +209,19 @@ def lire_tableau_markdown(chemin: Path | None, colonne_cle: int = 0, colonne_val
 
 
 def normaliser_statut(texte: str) -> str:
-    """Statut d'une cellule de registre, lu sur son premier mot significatif (« Gelé (…) », « Actif : … »)."""
-    premier = re.split(r"[\s(:;,.]+", (texte or "").strip().lower(), maxsplit=1)[0]
-    for prefixe, statut in (("remplac", "arrete"), ("arrêt", "arrete"), ("arret", "arrete"),
-                            ("abandon", "arrete"), ("gel", "gele"), ("suspend", "gele"),
-                            ("prépar", "en_preparation"), ("prepar", "en_preparation"), ("actif", "actif"),
-                            ("test", "test")):
-        if premier.startswith(prefixe):
+    """Statut d'une cellule de registre, lu dans sa première proposition (avant « : », « ; », « ( », « , »).
+    « En préparation », « En pause », « Inactif », « Gelé (…) », « Actif : … » sont reconnus ; une description
+    (« Site non mis en ligne, lien A_REMPLACER ») ne l'est pas."""
+    clause = re.split(r"[:;(,—–]", (texte or "").strip().lower(), maxsplit=1)[0]
+    mots = re.findall(r"[a-zàâçéèêëîïôûùüÿœ]+", clause)
+    if any(m in ("pas", "non", "jamais") for m in mots) and any(m.startswith("actif") for m in mots):
+        return "en_preparation"  # « Pas encore actif », « non actif »
+    regles = (("inactif", "gele"), ("désactiv", "gele"), ("desactiv", "gele"), ("pause", "gele"), ("veille", "gele"),
+              ("gel", "gele"), ("suspend", "gele"), ("remplac", "arrete"), ("arrêt", "arrete"), ("arret", "arrete"),
+              ("stopp", "arrete"), ("archiv", "arrete"), ("abandon", "arrete"), ("clos", "arrete"),
+              ("prépar", "en_preparation"), ("prepar", "en_preparation"), ("test", "test"), ("actif", "actif"))
+    for prefixe, statut in regles:
+        if any(m.startswith(prefixe) for m in mots):
             return statut
     return "inconnu"
 
@@ -167,9 +229,11 @@ def normaliser_statut(texte: str) -> str:
 # -- Déclarations d'encaissement et de volume des autres modules ----------------------------------------
 
 def declarations_novarys(chemin: Path | None) -> tuple[list[Declaration], list[str]]:
+    """Mesure « Encaissé » du portail NOVARYS. Par construction, le portail affiche l'encaissé de tout l'écosystème
+    (« registre de VELYX et moteur ») : il est comparé au total de l'entreprise, pas à un seul module."""
     texte = _lire(chemin)
     if texte is None:
-        return [], [f"{chemin} illisible"]
+        return [], []  # source absente : rien de déclaré, ce n'est pas une erreur de lecture
     try:
         donnees = tomllib.loads(texte)
     except tomllib.TOMLDecodeError as exc:
@@ -181,14 +245,14 @@ def declarations_novarys(chemin: Path | None) -> tuple[list[Declaration], list[s
                 sortie.append(Declaration("novarys", "encaisse_net", euros_en_centimes(m.get("value", "")),
                                           _date_fr(m.get("source", "")), f"{chemin.name} (portail NOVARYS)"))
             except ValueError as exc:
-                erreurs.append(str(exc))
+                erreurs.append(f"mesure « Encaissé » : {exc}")
     return sortie, erreurs
 
 
 def declarations_velyx(chemin: Path | None) -> tuple[list[Declaration], list[str]]:
     texte = _lire(chemin)
     if texte is None:
-        return [], [f"{chemin} illisible"]
+        return [], []  # source absente : rien de déclaré, ce n'est pas une erreur de lecture
     try:
         kpi = json.loads(texte)
     except ValueError as exc:
@@ -201,11 +265,11 @@ def declarations_velyx(chemin: Path | None) -> tuple[list[Declaration], list[str
             continue
         try:
             valeur = euros_en_centimes(str(bloc["valeur"])) if monetaire else int(bloc["valeur"])
-        except (ValueError, TypeError) as exc:
-            erreurs.append(f"{cle} : {exc}")
+        except (ValueError, TypeError):
+            erreurs.append(f"{cle} : valeur illisible")
             continue
-        sortie.append(Declaration("velyx", indicateur, valeur, str(bloc.get("date", ""))[:19],
-                                  f"{chemin.name} (VELYX)"))
+        sortie.append(Declaration("velyx", indicateur, valeur, str(bloc.get("date", "")), f"{chemin.name} (VELYX)",
+                                  perimetre="velyx"))
     return sortie, erreurs
 
 
@@ -216,24 +280,29 @@ def lire_pipeline(chemin: Path | None) -> tuple[list[Evenement] | None, list[str
     if texte is None:
         return None, []
     evenements, erreurs = [], []
-    for n, ligne in enumerate(csv.DictReader(io.StringIO(texte), delimiter=";"), 2):
+    for n, ligne in enumerate(csv.DictReader(io.StringIO(texte.lstrip("\ufeff")), delimiter=";"), 2):
         etape = (ligne.get("etape") or "").strip()
-        try:
-            jour = (ligne.get("date") or "").strip()
-            date.fromisoformat(jour[:10])
-            if etape not in ETAPES_PIPELINE:
-                raise ValueError(f"étape inconnue {etape!r}")
-            if not (ligne.get("opportunite") or "").strip() or not (ligne.get("ref") or "").strip():
-                raise ValueError("opportunité et référence obligatoires")
-        except ValueError as exc:
-            erreurs.append(f"pipeline ligne {n} : {exc}")
+        jour = (ligne.get("date") or "").strip()
+        # Les messages ne recopient jamais le contenu d'une cellule : il peut être nominatif.
+        if jour_de(jour) is None or (len(jour) > 10 and instant(jour) is None):
+            erreurs.append(f"pipeline ligne {n} : date illisible (AAAA-MM-JJ ou AAAA-MM-JJTHH:MM attendu)")
+            continue
+        if etape not in ETAPES_PIPELINE:
+            erreurs.append(f"pipeline ligne {n} : étape hors liste {ETAPES_PIPELINE}")
+            continue
+        if not (ligne.get("opportunite") or "").strip() or not (ligne.get("ref") or "").strip():
+            erreurs.append(f"pipeline ligne {n} : opportunité et référence obligatoires")
             continue
         evenements.append(Evenement(jour, ligne["opportunite"].strip(), ligne["ref"].strip(), etape,
-                                    (ligne.get("canal") or "").strip(), (ligne.get("preuve") or "").strip()))
+                                    (ligne.get("canal") or "").strip(), (ligne.get("preuve") or "").strip(),
+                                    (ligne.get("domaine") or "").strip().lower()))
     return evenements, erreurs
 
 
-def faits_pipeline(evenements: list[Evenement] | None, opportunites: list[str], source: str) -> list[Fait]:
+def faits_pipeline(evenements: list[Evenement] | None, opportunites: list[str], source: str,
+                   rejetees: int) -> list[Fait]:
+    """Comptes du pipeline. Une ligne rejetée peut être un envoi ou une réponse manquante : tant qu'il en reste,
+    aucun compte n'est PROUVÉ."""
     if evenements is None:
         return [Fait("pipeline", ind, None, INCONNU, source, note="aucun pipeline lisible")
                 for ind in ("prospects_contactes", "reponses", "prospects_qualifies", "conversions")]
@@ -247,10 +316,12 @@ def faits_pipeline(evenements: list[Evenement] | None, opportunites: list[str], 
             lignes = [e for e in concernes if e.etape in etapes]
             refs = {(e.opportunite, e.ref) for e in lignes}
             sans_preuve = sum(1 for e in lignes if not e.preuve)
-            statut = PROUVE if not sans_preuve else INCONNU
+            statut = PROUVE if not sans_preuve and not rejetees else INCONNU
+            notes = [f"{sans_preuve} ligne(s) sans preuve" if sans_preuve else "",
+                     f"{rejetees} ligne(s) rejetée(s) à la lecture" if rejetees else ""]
             faits.append(Fait("pipeline", ind, len(refs), statut, source, cle, derniere,
                               f"{len(lignes)} ligne(s) de pipeline avec preuve" if statut == PROUVE else "",
-                              note=f"{sans_preuve} ligne(s) sans preuve" if sans_preuve else ""))
+                              note="; ".join(n for n in notes if n)))
     return faits
 
 
@@ -263,15 +334,18 @@ def lire_couts(chemin: Path | None, source: str) -> tuple[list[Fait], list[str]]
     heures: dict[str, float] = defaultdict(float)
     sans_preuve: dict[str, int] = defaultdict(int)
     erreurs: list[str] = []
-    for n, ligne in enumerate(csv.DictReader(io.StringIO(texte), delimiter=";"), 2):
+    for n, ligne in enumerate(csv.DictReader(io.StringIO(texte.lstrip("\ufeff")), delimiter=";"), 2):
         opp = (ligne.get("opportunite") or TOUTE_L_ENTREPRISE).strip()
         try:
             c = euros_en_centimes(ligne.get("euros") or "0")
             h = float((ligne.get("heures") or "0").replace(",", "."))
-            if c < 0 or h < 0:
-                raise ValueError("valeur négative")
-        except ValueError as exc:
-            erreurs.append(f"coûts ligne {n} : {exc}")
+            if c < 0 or not 0 <= h < float("inf"):
+                raise ValueError
+        except ValueError:
+            erreurs.append(f"coûts ligne {n} : montant ou heures illisibles, négatifs ou infinis")
+            # Une ligne illisible est un coût inconnu : le total ne peut plus être prouvé.
+            for cle in {opp, TOUTE_L_ENTREPRISE}:
+                sans_preuve[cle] += 1
             continue
         for cle in {opp, TOUTE_L_ENTREPRISE}:
             euros[cle] += c
@@ -279,10 +353,10 @@ def lire_couts(chemin: Path | None, source: str) -> tuple[list[Fait], list[str]]
             if not (ligne.get("preuve") or "").strip():
                 sans_preuve[cle] += 1
     faits = []
-    for cle in sorted(set(euros) | {TOUTE_L_ENTREPRISE}):
+    for cle in sorted(set(euros) | set(sans_preuve) | {TOUTE_L_ENTREPRISE}):
         statut = INCONNU if sans_preuve.get(cle) else PROUVE
         preuve = "journal des coûts, chaque ligne avec sa pièce" if statut == PROUVE else ""
-        note = f"{sans_preuve[cle]} ligne(s) sans pièce" if sans_preuve.get(cle) else ""
+        note = f"{sans_preuve[cle]} ligne(s) sans pièce ou illisible(s)" if sans_preuve.get(cle) else ""
         faits.append(Fait("couts", "couts", euros.get(cle, 0), statut, source, cle, preuve=preuve, note=note,
                           prive=True))
         faits.append(Fait("couts", "heures", round(heures.get(cle, 0.0), 2), statut, source, cle, preuve=preuve,
@@ -312,49 +386,17 @@ def _git(depot: Path, *args: str) -> str:
         return ""
 
 
-def rejouer(nom: str, depot: Path | None, commande: list[str], bilan: str, delai: int = 900) -> dict[str, Any]:
-    """Exécute la suite d'un module. Réussi = code 0 ET ligne de bilan vue ; sinon pas PROUVÉ."""
-    quand = datetime.now(UTC).isoformat(timespec="seconds")
-    if depot is None or not depot.is_dir():
-        return {"nom": nom, "date": quand, "code": None, "statut": INCONNU, "bilan": "", "commit": "",
-                "note": "dépôt absent de cette machine"}
-    avant = _git(depot, "status", "--porcelain")
-    try:
-        fini = subprocess.run(commande, cwd=depot, env=environnement_propre(), capture_output=True, text=True,
-                              timeout=delai, check=False)
-        sortie, code = (fini.stdout or "") + (fini.stderr or ""), fini.returncode
-    except subprocess.TimeoutExpired:
-        sortie, code = "", -1
-    except OSError as exc:
-        sortie, code = str(exc), -2
-    lignes = [ligne.strip() for ligne in sortie.splitlines() if re.search(bilan, ligne)]
-    vu = lignes[-1][:200] if lignes else ""
-    statut = ECHEC if code != 0 else (PROUVE if vu else INCONNU)
-    apres = _git(depot, "status", "--porcelain")
-    note = "" if vu or code != 0 else "code 0 sans ligne de bilan : non vérifié"
-    if apres != avant:
-        # La mère lit les modules sans les modifier : un rejeu qui écrit dans le dépôt ne prouve rien.
-        statut, note = (ECHEC if statut == ECHEC else INCONNU), "le rejeu a modifié le dépôt du module"
-    return {"nom": nom, "date": quand, "code": code, "statut": statut, "bilan": vu,
-            "commit": _git(depot, "rev-parse", "HEAD")[:12], "propre": apres == "", "note": note}
-
-
-def faits_rejeux(resultats: list[dict[str, Any]], depots: dict[str, Path | None],
-                 rattachement: dict[str, list[str]]) -> list[Fait]:
-    """Un rejeu ne prouve que le commit sur lequel il a tourné : autre commit ou dépôt modifié => INCONNU.
-    Chaque rejeu donne un fait pour le module (« module:<nom> ») et un par opportunité rattachée."""
+def faits_rejeux(controles_suites: list[Any], rattachement: dict[str, list[str]]) -> list[Fait]:
+    """Faits « suite verte » tirés des contrôles en clone propre (voir controles.rejouer_propre).
+    Chaque contrôle donne un fait pour le module (« module:<nom> ») et un par opportunité rattachée."""
     faits = []
-    for r in resultats:
-        depot = depots.get(r["nom"])
-        actuel = _git(depot, "rev-parse", "HEAD")[:12] if depot else ""
-        statut, note = r["statut"], r.get("note", "")
-        if statut == PROUVE and (not actuel or actuel != r.get("commit") or not r.get("propre", False)):
-            statut, note = INCONNU, f"rejoué sur {r.get('commit') or '?'}, dépôt maintenant à {actuel or '?'}"
-        valeur = None if statut == INCONNU else statut == PROUVE
-        preuve = f"{r.get('commit')} · {r.get('bilan')}" if statut == PROUVE else ""
-        for cle in [f"module:{r['nom']}", *rattachement.get(r["nom"], [])]:
-            faits.append(Fait(f"rejeu:{r['nom']}", "suite_verte", valeur, statut, f"rejeu de la suite de {r['nom']}",
-                              cle, r["date"], preuve, note))
+    for c in controles_suites:
+        nom = c.id.split(":", 1)[1]
+        valeur = None if c.statut in (INCONNU, "CONFLIT") else c.statut == PROUVE
+        preuve = f"{c.reference} · {c.detail}" if c.statut == PROUVE else ""
+        for cle in [f"module:{nom}", *rattachement.get(nom, [])]:
+            faits.append(Fait(c.controleur, "suite_verte", valeur, c.statut, f"suite de {nom} rejouée par la mère",
+                              cle, c.date, preuve, "" if c.statut == PROUVE else c.detail))
     return faits
 
 
@@ -363,6 +405,7 @@ def activite_recente(evenements: list[Evenement] | None, jour: date, jours: int 
     limite = jour - timedelta(days=jours)
     compte: dict[str, int] = defaultdict(int)
     for e in evenements or []:
-        if e.etape in ("envoi", "relance") and date.fromisoformat(e.date[:10]) >= limite:
+        jour_e = jour_de(e.date)
+        if e.etape in ("envoi", "relance") and jour_e is not None and jour_e >= limite:
             compte[e.opportunite] += 1
     return dict(compte)

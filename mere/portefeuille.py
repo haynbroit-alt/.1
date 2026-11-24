@@ -13,6 +13,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from .faits import INDICATEURS
+
 CRITERES = ("demande", "concurrence", "marge", "cac", "vitesse", "potentiel")
 LIBELLES_CRITERES = {"demande": "Demande réelle", "concurrence": "Concurrence", "marge": "Marge",
                      "cac": "Coût d'acquisition", "vitesse": "Vitesse de vente", "potentiel": "Potentiel"}
@@ -28,6 +30,7 @@ class Note:
     nature: str
     source: str
     justification: str
+    verif: dict[str, Any] | None = None  # comment un autre acteur vérifie la source (page publique ou données)
 
 
 @dataclass(frozen=True)
@@ -54,6 +57,8 @@ class Opportunite:
     rejeu: str = ""
     notes: dict[str, Note] = field(default_factory=dict)
     arrets: list[Arret] = field(default_factory=list)
+    # Critères dont la source a été vérifiée par un autre acteur (rempli par les contrôles de citation).
+    notes_verifiees: set[str] = field(default_factory=set)
 
     @property
     def score_total(self) -> int:
@@ -61,11 +66,13 @@ class Opportunite:
 
     @property
     def score_prouve(self) -> int:
-        return sum(n.note for n in self.notes.values() if n.nature == "mesuré")
+        """Seules comptent les notes mesurées dont la source a été confirmée par un autre acteur."""
+        return sum(n.note for k, n in self.notes.items() if n.nature == "mesuré" and k in self.notes_verifiees)
 
     @property
     def confiance(self) -> float:
-        return sum(1 for n in self.notes.values() if n.nature == "mesuré") / len(CRITERES)
+        return sum(1 for k, n in self.notes.items() if n.nature == "mesuré" and k in self.notes_verifiees) / len(
+            CRITERES)
 
 
 def _opportunite(brut: dict[str, Any], erreurs: list[str]) -> Opportunite | None:
@@ -96,7 +103,11 @@ def _opportunite(brut: dict[str, Any], erreurs: list[str]) -> Opportunite | None
         if nature in ("mesuré", "calcul") and not source:
             erreurs.append(f"{oid}/{critere} : une note {nature} exige sa source")
             continue
-        o.notes[critere] = Note(critere, note, nature, source, str(c.get("justification") or ""))
+        verif = c.get("verif")
+        if verif is not None and not (isinstance(verif, dict) and ("url" in verif or "fichier" in verif)):
+            erreurs.append(f"{oid}/{critere} : verif doit donner une url (et contient) ou un fichier (et cle)")
+            verif = None
+        o.notes[critere] = Note(critere, note, nature, source, str(c.get("justification") or ""), verif)
     for a in brut.get("arret") or []:
         try:
             arret = Arret(str(a["libelle"]), str(a["indicateur"]), float(a["seuil"]), str(a.get("sens", "min")),
@@ -104,6 +115,8 @@ def _opportunite(brut: dict[str, Any], erreurs: list[str]) -> Opportunite | None
             date.fromisoformat(arret.date)
             if arret.sens not in SENS:
                 raise ValueError(f"sens {arret.sens!r}")
+            if arret.indicateur not in INDICATEURS:
+                raise ValueError(f"indicateur {arret.indicateur!r} hors contrat")
         except (KeyError, ValueError, TypeError) as exc:
             erreurs.append(f"{oid} : critère d'arrêt invalide ({exc})")
             continue

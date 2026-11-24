@@ -19,7 +19,14 @@ def opp(oid: str = "o", statut: str = "actif", notes: dict[str, tuple[int, str]]
     for k in CRITERES:
         n, nature = (notes or {}).get(k, (0, "hypothèse"))
         o.notes[k] = Note(k, n, nature, "source" if nature != "hypothèse" else "", "")
+        if nature == "mesuré":
+            o.notes_verifiees.add(k)  # par défaut, la source est supposée confirmée par son contrôleur
     return o
+
+
+def a_date(valeur):
+    """Mesure datée factice : la même valeur à toute date."""
+    return lambda opp, ind, limite: None if valeur is None else (valeur, PROUVE)
 
 
 def f(ind: str, valeur, statut: str = PROUVE, module: str = "x", o: str = "o", prive: bool = False) -> Fait:
@@ -115,7 +122,7 @@ class CriteresDArret(unittest.TestCase):
     def etat(self, valeur, statut: str = PROUVE, quand: str = "2026-11-30") -> chaine.EtatArret:
         o = opp(arrets=[Arret("l", "reponses", 1, "min", quand, "")])
         faits = [] if valeur is None else [f("reponses", valeur, statut=statut)]
-        return chaine.evaluer_arrets(o, chaine.consolider(faits), self.jour, [])[0]
+        return chaine.evaluer_arrets(o, chaine.consolider(faits), self.jour, [], a_date(valeur))[0]
 
     def test_avant_la_date(self) -> None:
         e = self.etat(0)
@@ -154,14 +161,31 @@ class Chaine(unittest.TestCase):
     def test_critere_manque_marque_l_etape(self) -> None:
         o = opp(arrets=[Arret("l", "reponses", 1, "min", "2026-11-20", "")])
         c = chaine.consolider([f("reponses", 0), f("prospects_qualifies", 0)])
-        arrets = chaine.evaluer_arrets(o, c, date(2026, 11, 24), [])
+        arrets = chaine.evaluer_arrets(o, c, date(2026, 11, 24), [], a_date(0))
         self.assertEqual(chaine.etats_chaine(o, c, arrets)["acheteur"][0], ECHEC)
 
-    def test_argent_encaisse_franchit_l_etape(self) -> None:
+    def test_argent_encaisse_franchit_l_etape_seulement_avec_la_banque(self) -> None:
         o = opp()
-        c = chaine.consolider([f("encaisse_net", 3_900, prive=True), f("ventes_payees", 1)])
-        e = chaine.etats_chaine(o, c, [])
-        self.assertEqual((e["vente"][0], e["encaisse"][0]), (PROUVE, PROUVE))
+        faits = [f("encaisse_net", 3_900, prive=True), f("encaisse_net", 3_900, prive=True, o="*"),
+                 f("ventes_payees", 1)]
+        ok = {"argent:grand-livre": (PROUVE, "rapproché"), "argent:credite-en-banque": (PROUVE, "retrouvé")}
+        sans_banque = chaine.etats_chaine(o, chaine.consolider(faits), [], ok)
+        self.assertEqual((sans_banque["vente"][0], sans_banque["encaisse"][0]), (PROUVE, INCONNU))
+        frais = f("frais_paiement", 100, prive=True, o="*")
+        avec = chaine.etats_chaine(o, chaine.consolider([*faits, frais, f("credite_en_banque", 3_800, prive=True,
+                                                                           o="*")]), [], ok)
+        self.assertEqual(avec["encaisse"][0], PROUVE, "virement = encaissé moins frais")
+        partiel = chaine.etats_chaine(o, chaine.consolider([*faits, frais, f("credite_en_banque", 1_000, prive=True,
+                                                                              o="*")]), [], ok)
+        self.assertEqual(partiel["encaisse"][0], INCONNU, "tout l'argent dû n'est pas encore en banque")
+        sans_livre = chaine.etats_chaine(o, chaine.consolider(faits), [], {})
+        self.assertEqual(sans_livre["vente"][0], INCONNU, "une vente non rapprochée du grand livre n'est pas prouvée")
+
+    def test_note_mesuree_non_confirmee_ne_compte_pas(self) -> None:
+        o = opp(notes={"demande": (5, "mesuré")})
+        o.notes_verifiees.clear()
+        self.assertEqual(o.score_prouve, 0)
+        self.assertEqual(chaine.etats_chaine(o, {}, [])["opportunite"][0], INCONNU)
 
     def test_les_hypotheses_ne_departagent_pas(self) -> None:
         reve = opp("reve", notes={k: (5, "hypothèse") for k in CRITERES})

@@ -10,7 +10,7 @@ import unittest
 from datetime import date
 from pathlib import Path
 
-from mere import garde, sources
+from mere import controles, garde, sources
 from mere.statuts import ECHEC, INCONNU, PROUVE
 
 
@@ -25,7 +25,7 @@ class Montants(unittest.TestCase):
         self.assertEqual(sources.euros_en_centimes("12,50 €"), 1250)
         self.assertEqual(sources.euros_en_centimes("1 234,56 €"), 123_456)
         self.assertEqual(sources.euros_en_centimes("0 €"), 0)
-        for faux in ("abc", "1,234", "", "12,5,0"):
+        for faux in ("abc", "1,234", "", "12,5,0", "Infinity", "NaN", "-Infinity"):
             with self.subTest(faux=faux), self.assertRaises(ValueError):
                 sources.euros_en_centimes(faux)
 
@@ -42,19 +42,19 @@ class Pipeline(unittest.TestCase):
             evenements, erreurs = sources.lire_pipeline(p)
         self.assertEqual(len(evenements or []), 2)
         self.assertEqual(len(erreurs), 3)
-        contacts = next(x for x in sources.faits_pipeline(evenements, ["o"], "p") if x.opportunite == "o"
+        contacts = next(x for x in sources.faits_pipeline(evenements, ["o"], "p", 0) if x.opportunite == "o"
                         and x.indicateur == "prospects_contactes")
         self.assertEqual((contacts.valeur, contacts.statut), (2, INCONNU))
 
     def test_pipeline_absent(self) -> None:
         evenements, _ = sources.lire_pipeline(Path("/nulle/part.csv"))
         self.assertIsNone(evenements)
-        self.assertTrue(all(x.statut == INCONNU for x in sources.faits_pipeline(None, ["o"], "p")))
+        self.assertTrue(all(x.statut == INCONNU for x in sources.faits_pipeline(None, ["o"], "p", 0)))
 
     def test_un_prospect_relance_compte_une_fois(self) -> None:
         ev = [sources.Evenement("2026-11-21", "o", "r1", "envoi", "e", "p"),
               sources.Evenement("2026-11-24", "o", "r1", "relance", "e", "p")]
-        x = next(f for f in sources.faits_pipeline(ev, ["o"], "p") if f.opportunite == "o"
+        x = next(f for f in sources.faits_pipeline(ev, ["o"], "p", 0) if f.opportunite == "o"
                  and f.indicateur == "prospects_contactes")
         self.assertEqual(x.valeur, 1)
 
@@ -71,7 +71,7 @@ class Couts(unittest.TestCase):
             faits, erreurs = sources.lire_couts(p, "c")
         self.assertEqual(len(erreurs), 1)
         total = next(f for f in faits if f.opportunite == "o" and f.indicateur == "couts")
-        self.assertEqual((total.valeur, total.statut), (1200, PROUVE))
+        self.assertEqual((total.valeur, total.statut), (1200, INCONNU), "une ligne rejetée rend le total INCONNU")
 
 
 class Verdicts(unittest.TestCase):
@@ -93,28 +93,65 @@ class StatutsDeclares(unittest.TestCase):
         self.assertEqual(sources.normaliser_statut("Préparé hors ligne ; validation…"), "en_preparation")
         self.assertEqual(sources.normaliser_statut("Remplacé par Obligato"), "arrete")
         self.assertEqual(sources.normaliser_statut("Test en cours (7 envois), verdict le 05/12"), "test")
+        self.assertEqual(sources.normaliser_statut("En préparation : relecture"), "en_preparation")
+        self.assertEqual(sources.normaliser_statut("En pause"), "gele")
+        self.assertEqual(sources.normaliser_statut("Inactif depuis octobre"), "gele")
         # Régression : « A_REMPLACER » au milieu d'une description n'est pas un statut.
         self.assertEqual(sources.normaliser_statut("Site non mis en ligne, lien (A_REMPLACER)"), "inconnu")
 
 
 class Rejeu(unittest.TestCase):
-    def depot(self, d: str) -> Path:
+    """Les suites sont rejouées par la mère dans un clone neuf : le module ne se valide pas lui-même."""
+
+    def depot(self, d: str, fichiers: dict[str, str] | None = None) -> Path:
         p = Path(d)
-        for cmd in (["git", "init", "-q"], ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q",
-                                             "--allow-empty", "-m", "i"]):
-            subprocess.run(cmd, cwd=p, check=True, capture_output=True)
+        subprocess.run(["git", "init", "-q"], cwd=p, check=True, capture_output=True)
+        for nom, texte in (fichiers or {"lisez-moi": "x"}).items():
+            (p / nom).write_text(texte, encoding="utf-8")
+        subprocess.run(["git", "add", "-A"], cwd=p, check=True, capture_output=True)
+        subprocess.run(["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "-m", "i"], cwd=p,
+                       check=True, capture_output=True)
         return p
 
     def test_issues(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             p = self.depot(d)
-            ok = sources.rejouer("m", p, ["python3", "-c", "print('3 passed')"], r"^\d+ passed")
-            muet = sources.rejouer("m", p, ["python3", "-c", "print('rien')"], r"^\d+ passed")
-            rouge = sources.rejouer("m", p, ["python3", "-c", "import sys; print('3 passed'); sys.exit(1)"],
-                                    r"^\d+ passed")
-            ecrit = sources.rejouer("m", p, ["python3", "-c", "open('x','w'); print('3 passed')"], r"^\d+ passed")
-        self.assertEqual([r["statut"] for r in (ok, muet, rouge, ecrit)], [PROUVE, INCONNU, ECHEC, INCONNU])
-        self.assertIn("modifié", ecrit["note"])
+            ok = controles.rejouer_propre("m", p, ["python3", "-c", "print('3 passed in 0.1s')"], r"^[1-9]\d* passed")
+            muet = controles.rejouer_propre("m", p, ["python3", "-c", "print('rien')"], r"^[1-9]\d* passed")
+            rouge = controles.rejouer_propre("m", p, ["python3", "-c", "import sys; print('3 passed'); sys.exit(1)"],
+                                             r"^[1-9]\d* passed")
+        self.assertEqual([r["statut"] for r in (ok, muet, rouge)], [PROUVE, INCONNU, ECHEC])
+        self.assertEqual(len(ok["essais"]), 2)
+
+    def test_le_rejeu_tourne_dans_un_clone_et_non_dans_le_depot(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            p = self.depot(d)
+            r = controles.rejouer_propre("m", p, ["python3", "-c", "open('trace','w'); print('1 passed')"],
+                                         r"^[1-9]\d* passed")
+            self.assertFalse((p / "trace").exists())
+        self.assertEqual(r["statut"], PROUVE)
+
+    def test_un_rejeu_qui_ecrit_dans_le_depot_d_origine_ne_prouve_rien(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            p = self.depot(d)
+            cmd = ["python3", "-c", f"open({str(p / 'intrus')!r},'w'); print('1 passed')"]
+            r = controles.rejouer_propre("m", p, cmd, r"^[1-9]\d* passed")
+        self.assertEqual(r["statut"], INCONNU)
+
+    def test_executions_discordantes(self) -> None:
+        with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as compteur:
+            p = self.depot(d)
+            c = Path(compteur) / "n"
+            script = (f"import pathlib,sys; f=pathlib.Path({str(c)!r}); n=int(f.read_text()) if f.exists() else 0; "
+                      "f.write_text(str(n+1)); print('2 passed'); sys.exit(n)")
+            r = controles.rejouer_propre("m", p, ["python3", "-c", script], r"^[1-9]\d* passed")
+        self.assertEqual(r["statut"], "CONFLIT")
+
+    def test_aucun_test_execute_ne_prouve_rien(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            p = self.depot(d)
+            r = controles.rejouer_propre("m", p, ["python3", "-c", "print('# pass 0')"], r"^# pass \d+")
+        self.assertNotEqual(r["statut"], PROUVE)
 
     def test_aucun_secret_transmis(self) -> None:
         os.environ["MERE_TEST_SECRET_KEY"] = "s3cr3t"
@@ -127,17 +164,24 @@ class Rejeu(unittest.TestCase):
         self.assertNotIn("GITHUB_TOKEN", env)
         self.assertIn("PATH", env)
 
-    def test_preuve_perimee_sur_un_autre_commit(self) -> None:
+    def test_preuve_perimee_sur_un_autre_commit_ou_un_depot_modifie(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             p = self.depot(d)
-            r = sources.rejouer("m", p, ["python3", "-c", "print('1 passed')"], r"^\d+ passed")
-            subprocess.run(["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty",
-                            "-m", "j"], cwd=p, check=True)
-            faits = sources.faits_rejeux([r], {"m": p}, {"m": ["o"]})
-        self.assertTrue(all(f.statut == INCONNU for f in faits))
+            r = controles.rejouer_propre("m", p, ["python3", "-c", "print('1 passed')"], r"^[1-9]\d* passed")
+            self.assertEqual(controles.controle_suite(r, p).statut, PROUVE)
+            (p / "lisez-moi").write_text("modifié", encoding="utf-8")
+            self.assertEqual(controles.controle_suite(r, p).statut, INCONNU)
+            subprocess.run(["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qam", "j"], cwd=p,
+                           check=True)
+            self.assertEqual(controles.controle_suite(r, p).statut, INCONNU)
+
+    def test_ancien_format_refuse(self) -> None:
+        ancien = {"nom": "m", "date": "2026-11-24T00:00:00+00:00", "code": 0, "statut": PROUVE, "bilan": "1 passed",
+                  "commit": "abc", "propre": True}
+        self.assertEqual(controles.controle_suite(ancien, None).statut, INCONNU)
 
     def test_depot_absent(self) -> None:
-        self.assertEqual(sources.rejouer("m", None, ["true"], "x")["statut"], INCONNU)
+        self.assertEqual(controles.rejouer_propre("m", None, ["true"], "x")["statut"], INCONNU)
 
 
 class Garde(unittest.TestCase):

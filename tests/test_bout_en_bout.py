@@ -73,14 +73,26 @@ class BoutEnBout(unittest.TestCase):
                                               'source = "relevé le 23/11/2026"\n', encoding="utf-8")
         return racine
 
-    def faux(self) -> FauxStripe:
-        return FauxStripe({"charges": [paiement("ch_vrai000001", 1_234_500, metadata={"opportunite": "a"},
-                                                cree=1_795_300_000)],
-                           "products": [{"id": "prod_A0000001", "name": "Produit A", "active": True}]})
+    def faux(self, verse: bool = True) -> FauxStripe:
+        charge = paiement("ch_vrai000001", 1_234_500, metadata={"opportunite": "a"}, cree=1_795_300_000)
+        return FauxStripe({
+            "charges": [charge],
+            "products": [{"id": "prod_A0000001", "name": "Produit A", "active": True, "livemode": True}],
+            "prices": [{"id": "price_A000001", "product": "prod_A0000001", "active": True, "livemode": True}],
+            "balance_transactions": [{"id": "txn_A0000001", "type": "charge", "source": "ch_vrai000001",
+                                      "amount": 1_234_500, "fee": 18_500}],
+            "payouts": [{"id": "po_A00000001", "status": "paid", "livemode": True, "amount": 1_216_000,
+                         "arrival_date": 1_795_500_000}] if verse else [],
+        })
+
+    def releve_bancaire(self, racine: Path) -> None:
+        (racine / "prive/banque.csv").write_text("date;libelle;montant;reference\n2026-11-24;VIREMENT;12160,00;x\n",
+                                                encoding="utf-8")
 
     def test_chaine_complete(self) -> None:
         with tempfile.TemporaryDirectory() as d:
             racine = self.preparer(Path(d))
+            self.releve_bancaire(racine)
             r = construire(racine, date(2026, 11, 24), lire_stripe=True, client=self.faux().client())
             public, prive = rendre(r, prive=False), rendre(r, prive=True)
         self.assertEqual(r.erreurs, [])
@@ -96,6 +108,42 @@ class BoutEnBout(unittest.TestCase):
         self.assertIn("gele", textes, "registre qui déclare gelé une offre qui prospecte")
         self.assertIn("encaissé différent", textes, "portail qui déclare 0 € après un paiement")
         self.assertIn("| Bénéfice net (hors temps) | — | INCONNU |", public, "un coût inconnu n'est jamais compté nul")
+
+    def test_paiement_sans_releve_bancaire_n_est_pas_un_encaissement_prouve(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            racine = self.preparer(Path(d))
+            r = construire(racine, date(2026, 11, 24), lire_stripe=True, client=self.faux().client())
+        self.assertIn("Premier euro : INCONNU : paiement réussi, mais crédit en banque non vérifié", rendre(r, False))
+        self.assertEqual(r.etats["a"]["encaisse"][0], "INCONNU")
+
+    def test_virement_absent_du_releve_est_un_conflit(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            racine = self.preparer(Path(d))
+            (racine / "prive/banque.csv").write_text("date;libelle;montant\n2026-11-24;AUTRE;10,00\n", encoding="utf-8")
+            r = construire(racine, date(2026, 11, 24), lire_stripe=True, client=self.faux().client())
+        banque = next(c for c in r.controles if c.id == "argent:credite-en-banque")
+        self.assertEqual(banque.statut, "CONFLIT")
+
+    def test_rien_de_public_n_est_ecrit_par_construire(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            racine = self.preparer(Path(d))
+            avant = sorted(p.name for p in (racine / "etat").iterdir())
+            construire(racine, date(2026, 11, 24), lire_stripe=True, client=self.faux().client())
+            self.assertEqual(sorted(p.name for p in (racine / "etat").iterdir()), avant)
+
+    def test_recomptage_independant_qui_trouve_un_rebond_manque(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            racine = self.preparer(Path(d))
+            (racine / "prive/recomptage_messagerie.json").write_text(
+                '{"lecteur": "second-lecteur", "envois": {"a": 2}, "reponses": 0, "rebonds": 1}', encoding="utf-8")
+            r = construire(racine, date(2026, 11, 24))
+            recompte = next(c for c in r.controles if c.id == "pipeline:recomptage")
+            self.assertEqual(recompte.statut, "CONFLIT")
+            self.assertIn("rebonds", recompte.detail)
+            with (racine / "prive/pipeline.csv").open("a", encoding="utf-8") as f:
+                f.write("2026-11-22T11:00;a;r2;rebond;email;gmail:3\n")
+            r = construire(racine, date(2026, 11, 24))
+        self.assertEqual(next(c for c in r.controles if c.id == "pipeline:recomptage").statut, "PROUVÉ")
 
     def test_fuite_refusee(self) -> None:
         with tempfile.TemporaryDirectory() as d:

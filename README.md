@@ -20,13 +20,21 @@ sur 4 offres, 0 réponse à ce jour. Deux registres contredisaient la réalité 
 en préparation, alors que des envois étaient partis. Ils ont été corrigés. Les conflits qui attendent une décision
 du propriétaire sont listés dans `AUDIT.md`, § 4, et les alertes dans `TABLEAU.md`.
 
+## La boucle de vérification
+
+Rien n'est PROUVÉ sur la seule parole de celui qui l'a produit. Chaque affirmation (un paiement, un prospect, une
+suite de tests, une note du portefeuille, un registre) est contrôlée par un acteur que son producteur ne maîtrise
+pas : le grand livre du prestataire, la banque, le web public, un second lecteur de la messagerie, une copie propre
+du dépôt, NOVARYS Ω, un relecteur indépendant. La matrice est dans `ARCHITECTURE.md` ; l'historique des erreurs
+et des corrections, dans `journal/`.
+
 ## Utilisation
 
 ```bash
-python3 -m mere tableau --stripe --rejouer   # relève, rejoue, rapproche, écrit TABLEAU.md et prive/TABLEAU_PRIVE.md
+python3 -m mere tableau --stripe --rejouer --controler   # relève, rejoue en clone propre, contrôle, écrit les tableaux
 python3 -m mere tableau                      # même chose avec le dernier relevé privé et les derniers rejeux
 python3 -m mere verifier                     # portefeuille valide, sorties publiques sans fuite (CI)
-python3 -m unittest discover -s tests        # 62 tests, dont les attaques contre le compteur d'argent
+python3 -m unittest discover -s tests        # tests adversariaux, dont les non-régressions des revues indépendantes
 ```
 
 Python 3.11 ou plus, bibliothèque standard seule. Les modules sont cherchés à côté de ce dépôt (voir

@@ -27,7 +27,7 @@ bilan = '^OK( |$)'
 nom = "sovereign"
 depot = "sovereign"
 commande = ["uv", "run", "--locked", "pytest", "-o", "addopts=", "-q"]
-bilan = '^\d+ passed'
+bilan = '^[1-9]\d* passed'
 
 [[rejeu]]
 nom = "novarys"
@@ -40,16 +40,16 @@ nom = "hive"
 depot = "hive"
 # --no-project : rien n'est écrit dans le dépôt (ni verrou, ni environnement) pendant le rejeu.
 commande = ["uv", "run", "--no-project", "--with", "pytest", "--with", "httpx", "--with", "fastapi", "--with", "uvicorn", "--with", "python-multipart", "--", "python", "-m", "pytest", "-q"]
-bilan = '^\d+ passed'
+bilan = '^[1-9]\d* passed'
 
 [[rejeu]]
 nom = "velyx"
 depot = "velyx"
 commande = ["node", "--test", "--test-reporter=tap", "test/*.test.js"]
-bilan = '^# pass \d+'
+bilan = '^# pass [1-9]\d*'
 
 [[rejeu]]
 nom = "tr"
 depot = "tr"
 commande = ["node", "--test", "--test-reporter=tap", "test/*.test.js"]
-bilan = '^# pass \d+'
+bilan = '^# pass [1-9]\d*'

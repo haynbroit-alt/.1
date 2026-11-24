@@ -11,6 +11,8 @@
 
 [reglages]
 devise = "eur"
+# Tiers indépendants du producteur dont une page peut prouver une note (en plus des autorités publiques).
+sources_tierces = ["centre-national-droit-du-travail.fr"]
 montants_publics = ["39"]  # prix publics cités dans les libellés de prévision (pas des montants encaissés)
 
 # ------------------------------------------------------------------------------------------------------------
@@ -27,8 +29,8 @@ declare = { depot = "strat-ge-business", fichier = "memoire/PROJETS.md", ligne =
 rejeu = "strat-ge-business"
 
 [opportunite.criteres]
-demande = { note = 4, nature = "mesuré", source = "Service Public F23106 (obligation pour tout employeur) ; packs déjà vendus sur le marché (boutique/ETUDE_MARCHE.md)", justification = "Obligation légale et marché qui paie déjà" }
-concurrence = { note = 3, nature = "mesuré", source = "boutique/ETUDE_MARCHE.md : packs du marché vierges, aucun pré-remplissage relevé", justification = "Acteurs établis, mais différenciation réelle" }
+demande = { note = 4, nature = "mesuré", source = "Service Public F23106 : affichages obligatoires pour tout employeur", justification = "Obligation légale", verif = { url = "https://entreprendre.service-public.gouv.fr/vosdroits/F23106", contient = "Affichages ou diffusions obligatoires" } }
+concurrence = { note = 3, nature = "mesuré", source = "Centre national du droit du travail : pack d'affichage vendu en ligne, vierge", justification = "Un marché qui paie déjà, avec des packs non personnalisés", verif = { url = "https://centre-national-droit-du-travail.fr/catalogue/affichages-obligatoires/pack-daffichage-obligatoire-nouvelle-edition-2026-avec-support-mural", contient = "Pack d'affichage obligatoire" } }
 marge = { note = 4, nature = "calcul", source = "boutique/prix_marges.py : produit numérique, frais de paiement seuls", justification = "Coût marginal quasi nul" }
 cac = { note = 2, nature = "hypothèse", source = "economie_unitaire.py, taux prudents non mesurés", justification = "LTV/CAC 0,19 en direct TPE, 1,41 par les cabinets" }
 vitesse = { note = 1, nature = "hypothèse", source = "", justification = "10 envois le 24/11, aucune réponse encore possible" }
@@ -64,7 +66,7 @@ declare = { depot = "strat-ge-business", fichier = "memoire/PROJETS.md", ligne =
 rejeu = "strat-ge-business"
 
 [opportunite.criteres]
-demande = { note = 2, nature = "mesuré", source = "novarys/echantillons/*_stats.json : 77 % d'oppositions sur 736 sociétés", justification = "Le problème est mesuré ; la volonté de payer ne l'est pas" }
+demande = { note = 2, nature = "mesuré", source = "novarys/echantillons/novarys_btp_FR_7j_stats.json : 79,6 % des créations BTP vérifiées ont fait opposition", justification = "Le problème est mesuré ; la volonté de payer ne l'est pas", verif = { depot = "strat-ge-business", fichier = "novarys/echantillons/novarys_btp_FR_7j_stats.json", cle = "taux_opposition_btp", min = 0.7, public = true } }
 concurrence = { note = 3, nature = "hypothèse", source = "", justification = "Vérification croisée registre et oppositions peu proposée" }
 marge = { note = 4, nature = "calcul", source = "D-20261123-1 : abonnement, environ 213 € de marge mensuelle sur hypothèses", justification = "Service outillé" }
 cac = { note = 2, nature = "hypothèse", source = "", justification = "CAC d'environ 230 € temps compris, sur taux supposés" }
@@ -100,12 +102,12 @@ declare = { depot = "strat-ge-business", fichier = "memoire/PROJETS.md", ligne =
 rejeu = "velyx"
 
 [opportunite.criteres]
-demande = { note = 3, nature = "mesuré", source = "Code des assurances L241-1 (décennale obligatoire) ; prix de leads relevés par le dépôt VELYX (reports/)", justification = "Acheteur qui paie déjà des leads" }
+demande = { note = 3, nature = "mesuré", source = "Code des assurances, art. L241-1 (décennale obligatoire)", justification = "Obligation légale qui crée l'acheteur", verif = { url = "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006796993", contient = "être couverte par une assurance" } }
 concurrence = { note = 3, nature = "hypothèse", source = "", justification = "Croisement non proposé selon l'étude du dépôt, non revérifié" }
 marge = { note = 4, nature = "calcul", source = "Registre public gratuit, traitement automatisé (VELYX)", justification = "Coût direct quasi nul" }
 cac = { note = 2, nature = "hypothèse", source = "", justification = "Prospection à froid, taux inconnus" }
 vitesse = { note = 1, nature = "hypothèse", source = "", justification = "7 envois le 21/11, aucune réponse au 24/11" }
-potentiel = { note = 1, nature = "mesuré", source = "novarys/echantillons/novarys_btp_FR_7j_stats.json : 38 sociétés BTP prospectables par semaine en France", justification = "Volume légal faible" }
+potentiel = { note = 1, nature = "mesuré", source = "novarys/echantillons/novarys_btp_FR_7j_stats.json : 38 sociétés BTP prospectables par semaine en France", justification = "Volume légal faible", verif = { depot = "strat-ge-business", fichier = "novarys/echantillons/novarys_btp_FR_7j_stats.json", cle = "btp_gardes", valeur = 38, public = true } }
 
 [[opportunite.arret]]
 libelle = "Au moins une réponse 14 jours après les envois (ADR 0002 de NOVARYS)"
@@ -131,7 +133,9 @@ concurrence = { note = 0, nature = "hypothèse", source = "", justification = "N
 marge = { note = 4, nature = "calcul", source = "Registre public gratuit", justification = "Coût direct quasi nul" }
 cac = { note = 1, nature = "hypothèse", source = "", justification = "Prospection à froid, taux inconnus" }
 vitesse = { note = 1, nature = "hypothèse", source = "", justification = "8 envois le 21/11, aucune réponse au 24/11" }
-potentiel = { note = 1, nature = "mesuré", source = "D-20261123-1 : 8 sociétés prospectables par semaine dans le Rhône, toutes activités", justification = "Volume légal faible par département" }
+# Corrigé le 24/11 : la note citait « 8 sociétés par semaine » (D-20261123-1) ; le contrôle des données a montré 59
+# (CONFLIT, journal/C-0002.md). La note ne garde que ce que les données prouvent.
+potentiel = { note = 2, nature = "mesuré", source = "novarys/echantillons/novarys_tous_69_7j_stats.json : 59 créations non opposées en 7 jours dans le Rhône, toutes activités", justification = "Volume réel mais modeste par département", verif = { depot = "strat-ge-business", fichier = "novarys/echantillons/novarys_tous_69_7j_stats.json", cle = "secteur_gardes", valeur = 59, public = true } }
 
 [[opportunite.arret]]
 libelle = "Au moins une réponse 14 jours après les envois"

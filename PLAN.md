@@ -19,12 +19,16 @@ Chaque chiffre est étiqueté : [mesuré] avec sa source, [hypothèse] ou [calcu
 | 4 | Dire si les lots J1 à J3 de Novarys Conformité sont partis, et par quel canal | Aucun envoi retrouvé dans la messagerie [mesuré] ; le verdict du 30/11 échouera par défaut | Le verdict de D-20261123-2 | 2 min |
 | 5 | Accepter ou refuser les propositions de l'audit : C1 (VELYX en test sans nouvel envoi), C4 (deux offres orphelines en test), C5 (partage du contrôle) | Une seule vérité par offre | La fin des priorités contradictoires | 2 min |
 | 6 | Activer un compteur de visites gratuit sur le portail et les pages d'offre | Visiteurs INCONNU partout [mesuré] | Le haut de l'entonnoir | 10 min |
+| 7 | Dès le premier virement du prestataire : déposer l'export du relevé bancaire dans `.1/prive/banque.csv` (date;libelle;montant) | La banque est le seul contrôleur indépendant de l'encaissement : sans relevé, « encaissé » reste INCONNU | La preuve du premier euro | 2 min par mois |
+| 8 | Dire oui ou non à une relecture par un autre modèle (Codex, compte OpenAI requis) | Aujourd'hui, le relecteur indépendant est du même modèle que l'auteur | Une indépendance plus forte du contrôle du code | 5 min |
+| 9 | Autoriser l'écriture dans le dépôt VELYX, ou corriger soi-même son test daté | Sa suite est rouge depuis le 23/11 (audit, § 4) | Le produit VELYX de nouveau PROUVÉ | 10 min |
 
 ## Étape 1 : jusqu'aux verdicts (25/11 au 06/12)
 
 | Date | Action | Responsable | Indicateur | Critère d'arrêt |
 |---|---|---|---|---|
-| Chaque jour | `python3 -m mere tableau --stripe --rejouer`, puis lire les conflits et les alertes | Agent | Conflits ouverts, verdicts dus | Un verdict dû sans mesure se traite le jour même |
+| Chaque jour | `python3 -m mere tableau --stripe --rejouer --controler`, puis lire les conflits, les alertes et les contrôles en échec | Agent | Conflits ouverts, verdicts dus, contrôles non PROUVÉS | Un verdict dû sans mesure se traite le jour même |
+| Chaque semaine | Second relevé indépendant de la messagerie (`prive/recomptage_messagerie.json`), par un autre lecteur que celui qui tient le pipeline | Un agent distinct, ou le propriétaire | Concordance envois, réponses, rebonds, domaines | Tout écart est un CONFLIT à résoudre avant la revue |
 | Chaque jour | Répondre dans la journée à tout retour, **y compris** sur VELYX, les créations d'entreprises et le pilote Google Merchant Center | Propriétaire, avec un brouillon de l'agent | Réponses dans la journée | Aucune réponse laissée plus de 24 h |
 | 28/11 | Relance Obligato des 10 cabinets : un seul message, leur propre pack en pièce jointe, une question fermée | Propriétaire | Réponses | Moins d'une réponse au 01/12 : revoir l'objet et le canal |
 | 30/11 | Verdict de D-20261123-2 (angle de la loi du 30/06/2025) | Agent | Réponses positives sur 20 | Moins d'une : revoir l'angle |

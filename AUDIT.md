@@ -116,3 +116,57 @@ et de décision existent toutes, souvent en plusieurs exemplaires.
 - Les dépôts privés (Alll, velyx-sauvegardes) et les actifs hors GitHub n'ont pas été lus.
 - Les notes des six critères sont, pour la plupart, des hypothèses étiquetées. Seul le score prouvé sert au
   classement.
+
+## 8. Les outils tiers proposés le 24/11 : audit et verdict
+
+Les sept dépôts ont été clonés à part et lus comme des données non fiables : aucun code n'a été exécuté. Le critère
+de choix : l'outil sert-il la boucle de vérification ou la chaîne jusqu'à l'argent, sans dépense ni compte nouveau ?
+
+| Outil | Ce qu'il est (lu dans le dépôt) | Licence | Verdict | Pourquoi |
+|---|---|---|---|---|
+| Playwright MCP (microsoft/playwright-mcp) | Navigateur piloté par MCP | Apache-2.0 | **Retenu pour les vérifications de pages** | Il vérifie de façon indépendante qu'une page d'offre ou le portail est en ligne et fonctionne. Le navigateur est déjà installé dans l'environnement. À brancher en `.mcp.json`, en version épinglée, au moment de vérifier une page d'offre |
+| agent-fender (K-Carb/agent-fender) | Grille de 7 garde-fous pour le code d'agents, plus une bibliothèque Python sans dépendance | MIT | **Retenu comme grille de contrôle externe**, sans installation | Ses 7 critères (délai sur chaque appel au modèle, limite de boucle, délai des outils, validation des actions dangereuses, détection d'injection, journal structuré, budget de jetons) sont une grille indépendante pour auditer SOVEREIGN, HIVE et VELYX. Son installateur écrit dans `~/.claude/skills` : à ne pas lancer sans accord |
+| Codex pour Claude Code (openai/codex-plugin-cc) | Relecture et délégation à Codex depuis Claude Code | Apache-2.0 | **Utile, mais bloqué : décision du propriétaire** | Une relecture par un autre modèle est la forme la plus forte du « aucun agent ne valide seul ». Il exige un compte ChatGPT ou une clé OpenAI : souscription et identité, donc accord explicite |
+| Remotion (remotion-dev/claude-code-plugin) | Création de vidéos en code | (voir le dépôt) | Non retenu maintenant | Production vidéo, déjà couverte par le Studio de HIVE. Aucune offre active n'en a besoin avant le premier euro |
+| last30days (mvanhorn/last30days-skill) | Recherche des discussions récentes (Reddit, HN, X, YouTube…) | MIT | Non retenu pour les marchés actuels | Signal anglophone et grand public ; les offres actives visent des TPE et des cabinets français, pour lesquels les registres publics sont la source fiable. Plusieurs sources exigent des clés. À réévaluer pour une offre grand public |
+| Impeccable (pbakaus/impeccable) | Vocabulaire de design et détecteur déterministe de « design générique » | Apache-2.0 | Non retenu maintenant | Améliore des pages, mais aucune page d'offre n'a de trafic mesuré. À reprendre quand une page reçoit des visiteurs |
+| feder-skills (federbenjamin/feder-skills) | Cinq skills de raisonnement et de présentation | MIT | Non retenu | Recouvre la boucle de décision du businessman (options, explication) : un doublon de plus |
+
+## 9. La revue indépendante du code de la mère
+
+Un agent relecteur, sans le contexte de l'auteur, a attaqué `mere/` par des scripts reproductibles. Les 62 tests
+de l'auteur passaient tous. La revue a pourtant trouvé :
+- **1ʳᵉ revue : 19 défauts**, dont 6 critiques. Une autorisation non capturée comptait comme vente. Des valeurs
+  privées atteignaient le tableau public. La garde laissait passer des SIREN, des téléphones et des clés.
+  Un fichier public était écrit avant la garde.
+- **2ᵉ revue : 18 défauts corrigés sur 19**, et 10 nouveaux, dont 3 critiques :
+  - un prospect qualifié dans une offre en validait une autre ;
+  - une page en 403 ou 404 « prouvait » un prospect ;
+  - une valeur citée pouvait être recopiée dans le public.
+- **3ᵉ revue : les 10 corrigés**, et 7 nouveaux, dont aucun ne touche l'argent ni les ventes. Un hébergeur où le
+  producteur peut publier passait pour une source. Une donnée non versionnée était acceptée. Un contrôle en
+  cache était réutilisé après un changement de la note. Ils sont corrigés ; une liste d'autorités autorisées
+  remplace la liste de refus.
+- **4ᵉ revue** : voir `journal/C-0002.md`.
+
+Chaque défaut a son test de non-régression (`tests/test_revue_independante.py`, f01 à f19, n01 à n10, t1 à t7).
+Ces tests ont été rejoués contre le code d'avant correction : ils y échouent bien. Le détail des erreurs, de leurs causes et
+des corrections est dans `journal/C-0002.md`.
+
+## 10. Le code des moteurs, contrôlé avec une grille externe (agent-fender)
+
+La grille vient de agent-fender (MIT), pas de l'auteur de cet audit. Chaque verdict cite la ligne qui le fonde.
+
+| Garde-fou | SOVEREIGN (`core/llm.py`) | HIVE (`core/llm.py`, `core/governance.py`) |
+|---|---|---|
+| 1. Délai sur l'appel au modèle, erreurs classées | ✗ : `anthropic.Anthropic()` sans délai explicite (l. 121), délai par défaut du SDK ; `except Exception` générique (l. 176) | ✓ partiel : `timeout_s = 120` pour les fournisseurs HTTP (l. 64, 150, 194) ; ✗ appel Anthropic sans délai explicite |
+| 2. Limite de boucle | ✓ : boucle du directeur en phases bornées ; le `while True` de `interfaces/cli.py` l. 113 est l'invite interactive | ✓ : `max_steps_per_mission = 120` (`governance.py` l. 53) |
+| 3. Délai des outils | non applicable : aucun outil externe exécuté par le modèle | ✓ : disjoncteurs par mission |
+| 4. Validation des actions dangereuses | ✓ : revue humaine des risques élevés, jamais via MCP (`ARCHITECTURE.md` de SOVEREIGN) | ✓ : `request_approval` (`governance.py` l. 195) |
+| 5. Détection d'injection | ✗ : aucune trouvée ; risque limité, car l'IA n'y décide pas (ADR 0004) | ✗ : aucune trouvée |
+| 6. Journal structuré | ✓ : registre en ajout seul et journalisation | ✓ : registre chaîné |
+| 7. Budget de jetons | ✓ : enveloppe de 10 % vérifiée avant l'appel, `max_tokens` (l. 134 à 160) | ✓ : budget par mission (`governance.py` l. 74 à 125) |
+
+À corriger, dans les dépôts concernés, au moment où un modèle y sera réellement branché : un délai explicite sur
+chaque client Anthropic (`timeout=60`), et le classement des erreurs (délai, connexion, réponse). La mère n'appelle
+aucun modèle : les garde-fous 1, 5 et 7 ne la concernent pas.

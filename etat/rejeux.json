@@ -1,62 +1,116 @@
 [
  {
   "nom": "strat-ge-business",
-  "date": "2026-11-24T20:00:38+00:00",
-  "code": 0,
+  "date": "2026-11-24T20:48:09+00:00",
+  "controleur": "mere:clone-propre",
+  "essais": [
+   {
+    "code": 0,
+    "bilan": "OK"
+   },
+   {
+    "code": 0,
+    "bilan": "OK"
+   }
+  ],
+  "commit": "e0e4ba7f42b9",
   "statut": "PROUVÉ",
   "bilan": "OK",
-  "commit": "292e9ccc17f6",
-  "propre": true,
-  "note": ""
+  "note": "dépôt d'origine modifié : seul le commit est rejoué, les modifications locales non"
  },
  {
   "nom": "sovereign",
-  "date": "2026-11-24T20:00:38+00:00",
-  "code": 0,
-  "statut": "PROUVÉ",
-  "bilan": "292 passed in 8.10s",
+  "date": "2026-11-24T20:48:10+00:00",
+  "controleur": "mere:clone-propre",
+  "essais": [
+   {
+    "code": 0,
+    "bilan": "292 passed in 8.70s"
+   },
+   {
+    "code": 0,
+    "bilan": "292 passed in 8.54s"
+   }
+  ],
   "commit": "7cddfbd53ae6",
-  "propre": true,
-  "note": ""
+  "statut": "PROUVÉ",
+  "bilan": "292 passed in 8.54s",
+  "note": "dépôt d'origine modifié : seul le commit est rejoué, les modifications locales non"
  },
  {
   "nom": "novarys",
-  "date": "2026-11-24T20:00:47+00:00",
-  "code": 0,
+  "date": "2026-11-24T20:48:32+00:00",
+  "controleur": "mere:clone-propre",
+  "essais": [
+   {
+    "code": 0,
+    "bilan": "OK : 35 preuve(s) chaînée(s), 28 capacité(s), fichiers générés à jour"
+   },
+   {
+    "code": 0,
+    "bilan": "OK : 35 preuve(s) chaînée(s), 28 capacité(s), fichiers générés à jour"
+   }
+  ],
+  "commit": "e16b00ed355a",
   "statut": "PROUVÉ",
   "bilan": "OK : 35 preuve(s) chaînée(s), 28 capacité(s), fichiers générés à jour",
-  "commit": "e16b00ed355a",
-  "propre": true,
-  "note": ""
+  "note": "dépôt d'origine modifié : seul le commit est rejoué, les modifications locales non"
  },
  {
   "nom": "hive",
-  "date": "2026-11-24T20:00:47+00:00",
-  "code": 0,
-  "statut": "PROUVÉ",
-  "bilan": "54 passed, 1 warning in 11.54s",
+  "date": "2026-11-24T20:48:33+00:00",
+  "controleur": "mere:clone-propre",
+  "essais": [
+   {
+    "code": 0,
+    "bilan": "54 passed in 10.29s"
+   },
+   {
+    "code": 0,
+    "bilan": "54 passed in 9.97s"
+   }
+  ],
   "commit": "8b552da54e4a",
-  "propre": true,
-  "note": ""
+  "statut": "PROUVÉ",
+  "bilan": "54 passed in 9.97s",
+  "note": "dépôt d'origine modifié : seul le commit est rejoué, les modifications locales non"
  },
  {
   "nom": "velyx",
-  "date": "2026-11-24T20:01:00+00:00",
-  "code": 1,
+  "date": "2026-11-24T20:48:55+00:00",
+  "controleur": "mere:clone-propre",
+  "essais": [
+   {
+    "code": 1,
+    "bilan": "# pass 229"
+   },
+   {
+    "code": 1,
+    "bilan": "# pass 229"
+   }
+  ],
+  "commit": "8879058e3b91",
   "statut": "ÉCHEC",
   "bilan": "# pass 229",
-  "commit": "8879058e3b91",
-  "propre": true,
   "note": ""
  },
  {
   "nom": "tr",
-  "date": "2026-11-24T20:01:03+00:00",
-  "code": 0,
+  "date": "2026-11-24T20:49:00+00:00",
+  "controleur": "mere:clone-propre",
+  "essais": [
+   {
+    "code": 0,
+    "bilan": "# pass 51"
+   },
+   {
+    "code": 0,
+    "bilan": "# pass 51"
+   }
+  ],
+  "commit": "67a043cfd198",
   "statut": "PROUVÉ",
   "bilan": "# pass 51",
-  "commit": "67a043cfd198",
-  "propre": true,
   "note": ""
  }
 ]

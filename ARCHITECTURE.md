@@ -68,12 +68,12 @@ Sorties partagées : `etat/faits_publics.jsonl` (faits non privés, publics) et 
 
 | Étape | Franchie (PROUVÉ) quand | Source qui fait foi |
 |---|---|---|
-| Opportunité | La demande réelle est notée « mesuré » avec sa source | Portefeuille |
-| Produit | La suite de tests du module est verte, ligne de bilan vue, **sur le commit actuel**, dépôt non modifié par le rejeu | Rejeu |
+| Opportunité | La demande réelle est notée « mesuré » et sa source est confirmée par la page publique ou les données | Source citée |
+| Produit | La suite du module, rejouée deux fois dans un clone neuf, est verte et concordante, sur le commit actuel | La mère (clone propre) |
 | Offre | Au moins un prix actif chez le prestataire | Prestataire de paiement |
-| Acheteur | Au moins un prospect qualifié, chaque ligne du pipeline ayant sa preuve | Pipeline privé |
-| Vente | Au moins un paiement réussi en mode réel, non remboursé en totalité | Prestataire de paiement |
-| Encaissé | Encaissé net supérieur à zéro | Prestataire de paiement |
+| Acheteur | Au moins un prospect qualifié **et vérifié réel**, chaque ligne du pipeline ayant sa preuve | Pipeline et web public |
+| Vente | Au moins un paiement réussi, capturé, non contesté, en mode réel, rapproché du grand livre | Prestataire de paiement et son grand livre |
+| Encaissé | Encaissé net supérieur à zéro **et** retrouvé au crédit du relevé bancaire (net des frais) | Banque |
 | Amélioration | Au moins un verdict rendu ; un verdict échu non rendu donne ÉCHEC | Prévisions du poste business |
 | Croissance | Au moins deux ventes payées | Prestataire de paiement |
 
@@ -85,7 +85,7 @@ Une étape passe en **ÉCHEC** quand un critère d'arrêt qui la concerne est ma
 
 1. Seul un paiement **réussi, en mode réel, dans la devise de l'entreprise, net de ses remboursements** compte. Une
    carte de test, un paiement en mode test, une autre devise, une facture ouverte (CA annoncé) ou un potentiel ne
-   comptent jamais.
+   comptent jamais. Une autorisation non capturée, un paiement contesté ou un paiement non attribué non plus.
 2. Une source illisible donne INCONNU, **jamais zéro**. Un coût inconnu n'est pas un coût nul : le bénéfice reste
    INCONNU.
 3. L'accès au prestataire est **en lecture seule par construction** : uniquement des GET, sur cinq listes nommées.
@@ -103,6 +103,39 @@ Une étape passe en **ÉCHEC** quand un critère d'arrêt qui la concerne est ma
 9. Avant d'écrire une sortie publique, la garde refuse les adresses e-mail, les numéros de téléphone, les SIREN et
    SIRET, les identifiants du prestataire, les clés, les identifiants de message, et tout montant qui n'est pas un
    prix public déclaré.
+
+## La boucle de vérification obligatoire
+
+Chaque résultat suit le même cycle : **action → preuve → vérification indépendante → détection des erreurs →
+correction → nouveau test**. La règle fondamentale est inscrite dans le code : un `Controle` dont le contrôleur est
+le producteur est refusé à la construction (`AutoValidation`). Un contrôleur est indépendant quand le producteur ne
+le maîtrise pas : une autorité externe, un autre module, une copie propre du dépôt, un autre lecteur ou le
+propriétaire.
+
+| Ce qui est affirmé | Producteur | Contrôleur indépendant | Méthode reproductible | Sinon |
+|---|---|---|---|---|
+| Un client a payé | lecture des paiements par la mère | grand livre du prestataire | `/v1/charges` contre `/v1/balance_transactions` : même paiement, même montant | CONFLIT |
+| L'argent est encaissé | prestataire (virement « versé ») | banque | virement retrouvé au crédit du relevé du propriétaire (`prive/banque.csv`), montant exact, ± 4 jours | INCONNU sans relevé, CONFLIT si absent |
+| Le paiement est acquis | prestataire | fiches de litige | litige ouvert : INCONNU ; perdu : retiré de l'encaissé | INCONNU |
+| Un prospect existe | pipeline | web public | aucun rebond, et le site de son domaine répond | ÉCHEC si rebond, INCONNU sinon |
+| Le pipeline est complet | agent qui l'a rempli | second lecteur de la messagerie | recomptage des envois, réponses, rebonds et défis anti-spam | CONFLIT |
+| Une note « mesuré » est vraie | auteur du portefeuille | page publique ou données brutes | la phrase citée figure dans la page ; la valeur figure dans le fichier versionné. Un texte rédigé n'est pas une preuve | ÉCHEC, CONFLIT ou INCONNU |
+| La suite d'un module passe | le module | la mère, dans un clone neuf | deux exécutions du commit hors poste de travail, bilans concordants, au moins un test exécuté, dépôt d'origine inchangé | ÉCHEC, CONFLIT si discordant |
+| Un registre dit vrai | le module (NOVARYS, VELYX, poste business) | prestataire et pipeline | rapprochement à la même date, en instants UTC, sur le périmètre de la déclaration | CONFLIT |
+| La mère calcule juste | la mère | NOVARYS Ω | deux exécutions concordantes de la suite et attaques par mutation, au registre chaîné de NOVARYS | INCONNU tant que non prouvé |
+| Le code de la mère est correct | l'agent qui l'a écrit | relecteur indépendant (autre agent, sans le contexte de l'auteur) | attaques reproduites par scripts, puis contre-vérification des corrections | — |
+
+Ce qui reste hors de portée est affiché INCONNU, jamais deviné : visiteurs, coûts, crédit en banque sans relevé,
+sources qui refusent la lecture automatisée.
+
+**Trois réussites à ne pas confondre.** Le tableau les sépare :
+- **l'activité** (envois, prix créés, contrôles lancés) ne prouve rien ;
+- **la réussite technique** (suites reproduites, sources confirmées) prouve qu'un outil marche ;
+- **la réussite commerciale** (prospects réels qui répondent, paiements rapprochés, argent crédité en banque) est
+  la seule qui fasse avancer une opportunité vers l'argent.
+
+**Historique.** Les preuves de la mère sont au registre chaîné de NOVARYS Ω ; les décisions, au journal du poste
+business. Les erreurs et leurs corrections sont tenues cycle par cycle dans `journal/`. Les échecs y restent.
 
 ## Ajouter un module ou une opportunité
 
