@@ -1,6 +1,6 @@
 # Tableau de bord commercial de l'entreprise mère (public)
 
-> Généré par `python3 -m mere tableau` le 2026-11-24T21:04+00:00 (jour évalué : 2026-11-24). Ne pas modifier à la main.
+> Généré par `python3 -m mere tableau` le 2026-11-24T21:08+00:00 (jour évalué : 2026-11-24). Ne pas modifier à la main.
 > Version publique : les montants sont dans `prive/TABLEAU_PRIVE.md`, jamais versionnés.
 
 ## Verdict
@@ -20,7 +20,7 @@ Seule la réussite commerciale fait avancer une opportunité vers l'argent. L'ac
 | Activité | Contrôles exécutés dans ce passage | 28 |
 | Technique | Suites rejouées deux fois en clone propre et vertes | 5/6 |
 | Technique | Notes « mesuré » dont la source est confirmée | 2/6 |
-| Technique | La mère contrôlée par NOVARYS Ω | INCONNU |
+| Technique | La mère contrôlée par NOVARYS Ω | PROUVÉ |
 | Commercial | Prospects réels vérifiés | — (INCONNU) |
 | Commercial | Réponses | 0 (PROUVÉ) |
 | Commercial | Qualifiés et vérifiés réels | 0 (PROUVÉ) |
@@ -137,14 +137,14 @@ Aucun producteur ne se contrôle lui-même : chaque ligne nomme qui affirme et q
 | Chaque paiement réussi figure au grand livre du prestataire, même montant | mere:releve-paiements → stripe:grand-livre | contrôle croisé /v1/charges contre /v1/balance_transactions | PROUVÉ | 0 paiement(s) réussi(s) rapproché(s) |
 | L'argent versé par le prestataire est crédité en banque | stripe → banque | rapprochement montant exact et date ± 4 jours | PROUVÉ | aucun virement versé : rien à créditer |
 | La suite de tests de strat-ge-business passe | strat-ge-business → mere:clone-propre | 2 exécution(s) dans un clone neuf du commit, bilans comparés | PROUVÉ | OK |
-| La suite de tests de sovereign passe | sovereign → mere:clone-propre | 2 exécution(s) dans un clone neuf du commit, bilans comparés | PROUVÉ | 292 passed in 8.69s |
-| La suite de tests de novarys passe | novarys → mere:clone-propre | 2 exécution(s) dans un clone neuf du commit, bilans comparés | PROUVÉ | OK : 38 preuve(s) chaînée(s), 31 capacité(s), fichiers générés à jour |
-| La suite de tests de hive passe | hive → mere:clone-propre | 2 exécution(s) dans un clone neuf du commit, bilans comparés | PROUVÉ | 54 passed in 12.31s |
+| La suite de tests de sovereign passe | sovereign → mere:clone-propre | 2 exécution(s) dans un clone neuf du commit, bilans comparés | PROUVÉ | 292 passed in 9.42s |
+| La suite de tests de novarys passe | novarys → mere:clone-propre | 2 exécution(s) dans un clone neuf du commit, bilans comparés | PROUVÉ | OK : 41 preuve(s) chaînée(s), 31 capacité(s), fichiers générés à jour |
+| La suite de tests de hive passe | hive → mere:clone-propre | 2 exécution(s) dans un clone neuf du commit, bilans comparés | PROUVÉ | 54 passed in 12.06s |
 | La suite de tests de velyx passe | velyx → mere:clone-propre | 2 exécution(s) dans un clone neuf du commit, bilans comparés | ÉCHEC | # pass 229 |
 | La suite de tests de tr passe | tr → mere:clone-propre | 2 exécution(s) dans un clone neuf du commit, bilans comparés | PROUVÉ | # pass 51 |
-| L'étape « encaissé » de la mère n'est franchie que si la banque confirme le crédit, net des frais | mere → novarys | protocole Ω : 2 exécutions concordantes et attaque | INCONNU | preuve n° 38 du 2026-11-24, statut PROUVE, sur le commit ab85d6cfe399 : le code a changé depuis |
-| La garde de l'entreprise mère refuse les données personnelles et financières dans les sorties publiques | mere → novarys | protocole Ω : 2 exécutions concordantes et attaque | INCONNU | preuve n° 37 du 2026-11-24, statut PROUVE, sur le commit ab85d6cfe399 : le code a changé depuis |
-| L'entreprise mère passe ses tests adversariaux, et son portefeuille et ses sorties publiques sont valides | mere → novarys | protocole Ω : 2 exécutions concordantes et attaque | INCONNU | preuve n° 36 du 2026-11-24, statut PROUVE, sur le commit ab85d6cfe399 : le code a changé depuis |
+| L'étape « encaissé » de la mère n'est franchie que si la banque confirme le crédit, net des frais | mere → novarys | protocole Ω : 2 exécutions concordantes et attaque | PROUVÉ | preuve n° 41 du 2026-11-24, statut PROUVE |
+| La garde de l'entreprise mère refuse les données personnelles et financières dans les sorties publiques | mere → novarys | protocole Ω : 2 exécutions concordantes et attaque | PROUVÉ | preuve n° 40 du 2026-11-24, statut PROUVE |
+| L'entreprise mère passe ses tests adversariaux, et son portefeuille et ses sorties publiques sont valides | mere → novarys | protocole Ω : 2 exécutions concordantes et attaque | PROUVÉ | preuve n° 39 du 2026-11-24, statut PROUVE |
 | Ce que novarys déclare (encaisse_net) est vrai à sa date | novarys → stripe | rapprochement à la même date avec la source qui fait foi | PROUVÉ | concordant à la date de la déclaration |
 | Ce que velyx déclare (encaisse_net) est vrai à sa date | velyx → stripe | rapprochement à la même date avec la source qui fait foi | PROUVÉ | concordant à la date de la déclaration |
 | Ce que velyx déclare (prospects_contactes) est vrai à sa date | velyx → pipeline | rapprochement à la même date avec la source qui fait foi | INCONNU | registre de velyx en retard : 0 envoi(s) déclaré(s) au 2026-11-21, 7 prospect(s) contacté(s) depuis, non enregistré(s) |

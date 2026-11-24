@@ -1,7 +1,7 @@
 [
  {
   "nom": "strat-ge-business",
-  "date": "2026-11-24T21:03:31+00:00",
+  "date": "2026-11-24T21:07:35+00:00",
   "controleur": "mere:clone-propre",
   "essais": [
    {
@@ -20,64 +20,64 @@
  },
  {
   "nom": "sovereign",
-  "date": "2026-11-24T21:03:31+00:00",
+  "date": "2026-11-24T21:07:36+00:00",
   "controleur": "mere:clone-propre",
   "essais": [
    {
     "code": 0,
-    "bilan": "292 passed in 9.12s"
+    "bilan": "292 passed in 9.70s"
    },
    {
     "code": 0,
-    "bilan": "292 passed in 8.69s"
+    "bilan": "292 passed in 9.42s"
    }
   ],
   "commit": "7cddfbd53ae6",
   "statut": "PROUVÉ",
-  "bilan": "292 passed in 8.69s",
+  "bilan": "292 passed in 9.42s",
   "note": "dépôt d'origine modifié : seul le commit est rejoué, les modifications locales non"
  },
  {
   "nom": "novarys",
-  "date": "2026-11-24T21:03:54+00:00",
+  "date": "2026-11-24T21:08:00+00:00",
   "controleur": "mere:clone-propre",
   "essais": [
    {
     "code": 0,
-    "bilan": "OK : 38 preuve(s) chaînée(s), 31 capacité(s), fichiers générés à jour"
+    "bilan": "OK : 41 preuve(s) chaînée(s), 31 capacité(s), fichiers générés à jour"
    },
    {
     "code": 0,
-    "bilan": "OK : 38 preuve(s) chaînée(s), 31 capacité(s), fichiers générés à jour"
+    "bilan": "OK : 41 preuve(s) chaînée(s), 31 capacité(s), fichiers générés à jour"
    }
   ],
-  "commit": "827fb542b38b",
+  "commit": "771bfaad53b6",
   "statut": "PROUVÉ",
-  "bilan": "OK : 38 preuve(s) chaînée(s), 31 capacité(s), fichiers générés à jour",
+  "bilan": "OK : 41 preuve(s) chaînée(s), 31 capacité(s), fichiers générés à jour",
   "note": "dépôt d'origine modifié : seul le commit est rejoué, les modifications locales non"
  },
  {
   "nom": "hive",
-  "date": "2026-11-24T21:03:56+00:00",
+  "date": "2026-11-24T21:08:02+00:00",
   "controleur": "mere:clone-propre",
   "essais": [
    {
     "code": 0,
-    "bilan": "54 passed in 12.57s"
+    "bilan": "54 passed in 12.87s"
    },
    {
     "code": 0,
-    "bilan": "54 passed in 12.31s"
+    "bilan": "54 passed in 12.06s"
    }
   ],
   "commit": "8b552da54e4a",
   "statut": "PROUVÉ",
-  "bilan": "54 passed in 12.31s",
+  "bilan": "54 passed in 12.06s",
   "note": "dépôt d'origine modifié : seul le commit est rejoué, les modifications locales non"
  },
  {
   "nom": "velyx",
-  "date": "2026-11-24T21:04:22+00:00",
+  "date": "2026-11-24T21:08:28+00:00",
   "controleur": "mere:clone-propre",
   "essais": [
    {
@@ -96,7 +96,7 @@
  },
  {
   "nom": "tr",
-  "date": "2026-11-24T21:04:29+00:00",
+  "date": "2026-11-24T21:08:34+00:00",
   "controleur": "mere:clone-propre",
   "essais": [
    {

@@ -7,7 +7,7 @@
   "methode": "la phrase citée figure dans la page",
   "statut": "PROUVÉ",
   "detail": "phrase trouvée (empreinte du texte iipcffjllofj)",
-  "date": "2026-11-24T21:02:40+00:00",
+  "date": "2026-11-24T21:06:48+00:00",
   "reference": "https://entreprendre.service-public.gouv.fr/vosdroits/F23106 · signature odbfdbedafbo",
   "opportunite": "obligato"
  },
@@ -19,7 +19,7 @@
   "methode": "la phrase citée figure dans la page",
   "statut": "PROUVÉ",
   "detail": "phrase trouvée (empreinte du texte nikgnbbdcakd)",
-  "date": "2026-11-24T21:02:41+00:00",
+  "date": "2026-11-24T21:06:50+00:00",
   "reference": "https://centre-national-droit-du-travail.fr/catalogue/affichages-obligatoires/pack-daffichage-obligatoire-nouvelle-edition-2026-avec-support-mural · signature ckikdinlpaga",
   "opportunite": "obligato"
  },
@@ -31,7 +31,7 @@
   "methode": "taux_opposition_btp relu dans le fichier versionné",
   "statut": "INCONNU",
   "detail": "0.796 conforme aux données internes ; ce n'est pas une source indépendante",
-  "date": "2026-11-24T21:02:42+00:00",
+  "date": "2026-11-24T21:06:51+00:00",
   "reference": "strat-ge-business@e0e4ba7f42b9:novarys/echantillons/novarys_btp_FR_7j_stats.json · signature kdiecnamkbel",
   "opportunite": "novarys-conformite"
  },
@@ -43,7 +43,7 @@
   "methode": "lecture de la page",
   "statut": "INCONNU",
   "detail": "HTTP 403 : accès refusé ou page absente",
-  "date": "2026-11-24T21:02:42+00:00",
+  "date": "2026-11-24T21:06:51+00:00",
   "reference": "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006796993",
   "opportunite": "velyx-btp"
  },
@@ -55,7 +55,7 @@
   "methode": "btp_gardes relu dans le fichier versionné",
   "statut": "INCONNU",
   "detail": "38 conforme aux données internes ; ce n'est pas une source indépendante",
-  "date": "2026-11-24T21:02:43+00:00",
+  "date": "2026-11-24T21:06:51+00:00",
   "reference": "strat-ge-business@e0e4ba7f42b9:novarys/echantillons/novarys_btp_FR_7j_stats.json · signature nfhongfbmlll",
   "opportunite": "velyx-btp"
  },
@@ -67,7 +67,7 @@
   "methode": "secteur_gardes relu dans le fichier versionné",
   "statut": "INCONNU",
   "detail": "59 conforme aux données internes ; ce n'est pas une source indépendante",
-  "date": "2026-11-24T21:02:43+00:00",
+  "date": "2026-11-24T21:06:51+00:00",
   "reference": "strat-ge-business@e0e4ba7f42b9:novarys/echantillons/novarys_tous_69_7j_stats.json · signature mlajljlmhhkh",
   "opportunite": "creations-ec"
  },
@@ -151,7 +151,7 @@
   "methode": "rapprochement montant exact et date ± 4 jours",
   "statut": "PROUVÉ",
   "detail": "aucun virement versé : rien à créditer",
-  "date": "2026-11-24T21:03:31+00:00",
+  "date": "2026-11-24T21:07:35+00:00",
   "reference": "/v1/payouts",
   "opportunite": "*"
  },
@@ -163,7 +163,7 @@
   "methode": "2 exécution(s) dans un clone neuf du commit, bilans comparés",
   "statut": "PROUVÉ",
   "detail": "OK",
-  "date": "2026-11-24T21:03:31+00:00",
+  "date": "2026-11-24T21:07:35+00:00",
   "reference": "e0e4ba7f42b9",
   "opportunite": "*"
  },
@@ -174,8 +174,8 @@
   "controleur": "mere:clone-propre",
   "methode": "2 exécution(s) dans un clone neuf du commit, bilans comparés",
   "statut": "PROUVÉ",
-  "detail": "292 passed in 8.69s",
-  "date": "2026-11-24T21:03:31+00:00",
+  "detail": "292 passed in 9.42s",
+  "date": "2026-11-24T21:07:36+00:00",
   "reference": "7cddfbd53ae6",
   "opportunite": "*"
  },
@@ -186,9 +186,9 @@
   "controleur": "mere:clone-propre",
   "methode": "2 exécution(s) dans un clone neuf du commit, bilans comparés",
   "statut": "PROUVÉ",
-  "detail": "OK : 38 preuve(s) chaînée(s), 31 capacité(s), fichiers générés à jour",
-  "date": "2026-11-24T21:03:54+00:00",
-  "reference": "827fb542b38b",
+  "detail": "OK : 41 preuve(s) chaînée(s), 31 capacité(s), fichiers générés à jour",
+  "date": "2026-11-24T21:08:00+00:00",
+  "reference": "771bfaad53b6",
   "opportunite": "*"
  },
  {
@@ -198,8 +198,8 @@
   "controleur": "mere:clone-propre",
   "methode": "2 exécution(s) dans un clone neuf du commit, bilans comparés",
   "statut": "PROUVÉ",
-  "detail": "54 passed in 12.31s",
-  "date": "2026-11-24T21:03:56+00:00",
+  "detail": "54 passed in 12.06s",
+  "date": "2026-11-24T21:08:02+00:00",
   "reference": "8b552da54e4a",
   "opportunite": "*"
  },
@@ -211,7 +211,7 @@
   "methode": "2 exécution(s) dans un clone neuf du commit, bilans comparés",
   "statut": "ÉCHEC",
   "detail": "# pass 229",
-  "date": "2026-11-24T21:04:22+00:00",
+  "date": "2026-11-24T21:08:28+00:00",
   "reference": "8879058e3b91",
   "opportunite": "*"
  },
@@ -223,7 +223,7 @@
   "methode": "2 exécution(s) dans un clone neuf du commit, bilans comparés",
   "statut": "PROUVÉ",
   "detail": "# pass 51",
-  "date": "2026-11-24T21:04:29+00:00",
+  "date": "2026-11-24T21:08:34+00:00",
   "reference": "67a043cfd198",
   "opportunite": "*"
  },
@@ -233,10 +233,10 @@
   "producteur": "mere",
   "controleur": "novarys",
   "methode": "protocole Ω : 2 exécutions concordantes et attaque",
-  "statut": "INCONNU",
-  "detail": "preuve n° 38 du 2026-11-24, statut PROUVE, sur le commit ab85d6cfe399 : le code a changé depuis",
-  "date": "2026-11-24T20:50:09+00:00",
-  "reference": "registre/preuves.jsonl n° 38",
+  "statut": "PROUVÉ",
+  "detail": "preuve n° 41 du 2026-11-24, statut PROUVE",
+  "date": "2026-11-24T21:06:10+00:00",
+  "reference": "registre/preuves.jsonl n° 41",
   "opportunite": "*"
  },
  {
@@ -245,10 +245,10 @@
   "producteur": "mere",
   "controleur": "novarys",
   "methode": "protocole Ω : 2 exécutions concordantes et attaque",
-  "statut": "INCONNU",
-  "detail": "preuve n° 37 du 2026-11-24, statut PROUVE, sur le commit ab85d6cfe399 : le code a changé depuis",
-  "date": "2026-11-24T20:50:08+00:00",
-  "reference": "registre/preuves.jsonl n° 37",
+  "statut": "PROUVÉ",
+  "detail": "preuve n° 40 du 2026-11-24, statut PROUVE",
+  "date": "2026-11-24T21:06:09+00:00",
+  "reference": "registre/preuves.jsonl n° 40",
   "opportunite": "*"
  },
  {
@@ -257,10 +257,10 @@
   "producteur": "mere",
   "controleur": "novarys",
   "methode": "protocole Ω : 2 exécutions concordantes et attaque",
-  "statut": "INCONNU",
-  "detail": "preuve n° 36 du 2026-11-24, statut PROUVE, sur le commit ab85d6cfe399 : le code a changé depuis",
-  "date": "2026-11-24T20:50:02+00:00",
-  "reference": "registre/preuves.jsonl n° 36",
+  "statut": "PROUVÉ",
+  "detail": "preuve n° 39 du 2026-11-24, statut PROUVE",
+  "date": "2026-11-24T21:06:03+00:00",
+  "reference": "registre/preuves.jsonl n° 39",
   "opportunite": "*"
  },
  {
