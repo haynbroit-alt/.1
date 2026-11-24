@@ -37,8 +37,11 @@ AGENT = "Mozilla/5.0 (compatible; verification-entreprise-mere)"
 FICHIERS_DE_DONNEES = (".json", ".csv")
 # Une page ne prouve une note que si elle vient d'une autorité publique, ou d'un tiers nommé dans le portefeuille
 # (réglage « sources_tierces »), et jamais d'un hébergeur où le producteur peut publier lui-même.
-AUTORITES = ("gouv.fr", "service-public.fr", "legifrance.gouv.fr", "insee.fr", "europa.eu", "urssaf.fr", "cnil.fr",
-             "inpi.fr", "infogreffe.fr", "banque-france.fr", "bpifrance.fr")
+# Hôtes exacts (pas des suffixes : un sous-domaine public peut accueillir des textes déposés par n'importe qui).
+AUTORITES = ("entreprendre.service-public.gouv.fr", "www.service-public.fr", "www.legifrance.gouv.fr",
+             "code.travail.gouv.fr", "travail-emploi.gouv.fr", "www.economie.gouv.fr", "www.insee.fr", "www.urssaf.fr",
+             "www.cnil.fr", "www.inpi.fr", "www.infogreffe.fr", "annuaire-entreprises.data.gouv.fr",
+             "recherche-entreprises.api.gouv.fr", "eur-lex.europa.eu")
 # Tiers reconnus : la liste vit dans le code, pas dans le portefeuille du producteur. L'allonger est un changement de
 # code, donc relu par un autre agent et prouvé par NOVARYS Ω avant de compter.
 TIERS_RECONNUS = ("centre-national-droit-du-travail.fr",)
@@ -112,10 +115,12 @@ def _hote_autorise(hote: str, tiers: tuple[str, ...] = ()) -> bool:
     """`tiers` n'élargit rien : seuls les tiers déjà reconnus par le code sont retenus (le portefeuille ne peut pas
     déclarer sa propre page comme source)."""
     def couvre(domaine: str) -> bool:
-        return hote == domaine or hote.endswith("." + domaine)
+        return hote in (domaine, "www." + domaine)
+    if hote in AUTORITES:  # hôte exact d'une autorité (annuaire-entreprises.data.gouv.fr compris)
+        return True
     if any(r in hote for r in HOTES_REFUSES):  # data.gouv.fr : tout compte peut y publier
         return False
-    return any(couvre(a) for a in AUTORITES) or any(couvre(t) for t in TIERS_RECONNUS if t in tiers or not tiers)
+    return any(couvre(t) for t in TIERS_RECONNUS if t in tiers or not tiers)
 
 
 def empreinte(texte: str) -> str:
@@ -320,7 +325,10 @@ def controler_prospect(p: Prospect, lire: Callable[[str], tuple[int, str]] = lir
         return Controle(**base, statut=INCONNU, detail="domaine absent du pipeline")
     if any(m in p.domaine for m in MESSAGERIES):
         return Controle(**base, statut=INCONNU, detail="messagerie grand public : n'identifie pas une entreprise")
-    if domaines_messagerie is not None and p.domaine not in domaines_messagerie:
+    if domaines_messagerie is None:
+        return Controle(**base, statut=INCONNU, detail="aucun second relevé de la messagerie : le domaine, écrit par "
+                        "l'auteur du pipeline, n'est pas confirmé")
+    if p.domaine not in domaines_messagerie:
         return Controle(**base, statut=ECHEC, detail="domaine absent du second relevé de la messagerie : le pipeline "
                         "ne dit pas à qui le message est parti")
     codes = []
@@ -412,10 +420,14 @@ def rejouer_propre(nom: str, depot: Path | None, commande: list[str], bilan: str
     return resultat
 
 
-def controle_suite(r: dict[str, Any], depot: Path | None) -> Controle:
+def controle_suite(r: dict[str, Any], depot: Path | None, ce_passage: bool = True) -> Controle:
+    """`ce_passage` : faux quand le résultat est relu d'un passage précédent (etat/rejeux.json). Il n'est alors
+    jamais PROUVÉ : ce fichier est la mémoire de la mère, et il se modifie à la main."""
     actuel = _git(depot, "rev-parse", "HEAD")[:12] if depot else ""
     statut, detail = r["statut"], r.get("bilan") or r.get("note") or ""
-    if r.get("controleur") != "mere:clone-propre" or len(r.get("essais", [])) < 2:
+    if not ce_passage and statut == PROUVE:
+        statut, detail = INCONNU, f"PROUVÉ au rejeu du {str(r.get('date'))[:10]}, non rejoué dans ce passage"
+    elif r.get("controleur") != "mere:clone-propre" or len(r.get("essais", [])) < 2:
         statut, detail = INCONNU, "rejeu ancien ou unique, hors clone propre : à refaire avec --rejouer"
     elif statut == PROUVE and depot is not None and _git(depot, "status", "--porcelain"):
         statut, detail = INCONNU, "dépôt modifié depuis le rejeu : le code présent n'est pas celui qui a été testé"

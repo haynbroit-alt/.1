@@ -241,7 +241,10 @@ class ControlesIndependants(unittest.TestCase):
 
     def test_prospects(self) -> None:
         p = controles.Prospect("o", "r1", "exemple.invalid", False)
-        self.assertEqual(controles.controler_prospect(p, lambda u: (200, "")).statut, PROUVE)
+        vus = {"exemple.invalid"}
+        self.assertEqual(controles.controler_prospect(p, lambda u: (200, ""), vus).statut, PROUVE)
+        self.assertEqual(controles.controler_prospect(p, lambda u: (200, "")).statut, INCONNU,
+                         "sans second relevé, le domaine écrit par l'auteur n'est pas confirmé")
 
         def panne(url: str) -> tuple[int, str]:
             raise OSError("réseau")
@@ -327,7 +330,8 @@ class SecondeRevue(unittest.TestCase):
     def test_n02_un_4xx_ou_une_messagerie_ne_prouvent_rien(self) -> None:
         p = controles.Prospect("o", "r1", "exemple.invalid", False)
         for code in (403, 404, 410):
-            self.assertEqual(controles.controler_prospect(p, lambda u, c=code: (c, "")).statut, INCONNU)
+            self.assertEqual(controles.controler_prospect(p, lambda u, c=code: (c, ""), {"exemple.invalid"}).statut,
+                             INCONNU)
         webmail = controles.Prospect("o", "r1", "gmail.com", False)
         self.assertEqual(controles.controler_prospect(webmail, lambda u: (200, "")).statut, INCONNU)
         absent = controles.controler_prospect(p, lambda u: (200, ""), domaines_messagerie={"autre.fr"})
@@ -582,4 +586,67 @@ class QuatriemeRevue(unittest.TestCase):
                                      {**base, "id": "citation:y", "date": "2026-11-01T10:00:00"}]), encoding="utf-8")
             relus = controles.relire(p, ("citation:",))
         self.assertEqual([(c.id, c.statut) for c in relus], [("citation:x", INCONNU), ("citation:y", INCONNU)])
+
+
+class CinquiemeRevue(unittest.TestCase):
+    """Non-régression : aucune étape PROUVÉE sur la seule mémoire de la mère ou les fichiers de l'auteur (B1 à B5)."""
+
+    def racine(self, d: str) -> Path:
+        from test_bout_en_bout import BoutEnBout
+        return BoutEnBout().preparer(Path(d))
+
+    def test_b1_un_rejeu_relu_ne_prouve_pas_le_produit(self) -> None:
+        r = {"nom": "m", "date": "2026-11-24T00:00:00+00:00", "controleur": "mere:clone-propre", "statut": PROUVE,
+             "commit": "", "bilan": "3 passed", "essais": [{"code": 0, "bilan": "3 passed"}] * 2}
+        self.assertEqual(controles.controle_suite(r, None, ce_passage=False).statut, INCONNU)
+
+    def test_b2_l_instantane_du_prestataire_ne_prouve_ni_vente_ni_encaissement(self) -> None:
+        from test_bout_en_bout import BoutEnBout
+
+        from mere.tableau import construire
+        with tempfile.TemporaryDirectory() as d:
+            racine = self.racine(d)
+            BoutEnBout().releve_bancaire(racine)
+            construire(racine, date(2026, 11, 24), lire_stripe=True, client=BoutEnBout().faux().client())
+            instantane = racine / "prive/stripe.json"
+            brut = json.loads(instantane.read_text(encoding="utf-8"))
+            for f in brut["faits"]:
+                if f["indicateur"] == "ventes_payees":
+                    f["valeur"] = 3  # retouche à la main de la mémoire de la mère
+            instantane.write_text(json.dumps(brut), encoding="utf-8")
+            r = construire(racine, date(2026, 11, 24))
+        for etape in ("vente", "encaisse", "croissance"):
+            with self.subTest(etape=etape):
+                self.assertNotEqual(r.etats["a"][etape][0], PROUVE)
+
+    def test_b3_un_verdict_saisi_doit_concorder_avec_la_mesure(self) -> None:
+        from mere.tableau import construire
+        with tempfile.TemporaryDirectory() as d:
+            racine = self.racine(d)
+            prev = Path(d) / "strat/memoire/PREDICTIONS.csv"
+            prev.write_text("id;date_verdict;libelle;unite;bas;central;haut;reel;sens\n"
+                            "P-1;2026-11-22;x;u;1;2;3;5;plus\n", encoding="utf-8")
+            p = racine / "donnees/portefeuille.toml"
+            p.write_text(p.read_text(encoding="utf-8").replace('[reglages]\ndevise = "eur"',
+                         '[reglages]\ndevise = "eur"\n[reglages.indicateurs_previsions]\n"P-1" = "reponses"'),
+                         encoding="utf-8")
+            r = construire(racine, date(2026, 11, 24))
+        self.assertEqual(next(c for c in r.controles if c.id == "verdict:P-1").statut, CONFLIT)
+        self.assertNotEqual(r.etats["a"]["amelioration"][0], PROUVE)
+
+    def test_b4_sans_second_releve_aucun_acheteur_prouve(self) -> None:
+        etat = chaine.etats_chaine(
+            portefeuille.Opportunite("o", "o", "m", "actif", "r", "a"),
+            chaine.consolider([sources.Fait("web-public", "qualifies_verifies", 1, PROUVE, "w", "o", "", "p")]), [],
+            {})
+        self.assertEqual(etat["acheteur"][0], INCONNU)
+
+    def test_b5_autorites_par_hote_exact(self) -> None:
+        page = lambda url: (200, "<p>Affichages ou diffusions obligatoires</p>")  # noqa: E731
+        verif = {"contient": "Affichages ou diffusions obligatoires"}
+        consultation = controles.controler_citation("o", "d", {**verif, "url": "https://consultation.exemple.gouv.fr/x"},
+                                                    {}, page)
+        officiel = controles.controler_citation("o", "d", {**verif, "url": "https://entreprendre.service-public.gouv.fr/x"},
+                                                {}, page)
+        self.assertEqual((consultation.statut, officiel.statut), (ECHEC, PROUVE))
 

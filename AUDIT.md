@@ -147,9 +147,21 @@ de l'auteur passaient tous. La revue a pourtant trouvé :
   producteur peut publier passait pour une source. Une donnée non versionnée était acceptée. Un contrôle en
   cache était réutilisé après un changement de la note. Ils sont corrigés ; une liste d'autorités autorisées
   remplace la liste de refus.
-- **4ᵉ revue** : voir `journal/C-0002.md`.
+- **4ᵉ revue : 3 corrigés, 4 brèches résiduelles reproduites**, corrigées depuis.
+  - Le producteur pouvait déclarer sa propre page comme tiers de confiance.
+  - data.gouv.fr publie les jeux de n'importe quel compte.
+  - Un fichier de données écrit dans l'écosystème prouvait une note.
+  - Un contrôle en cache, forgeable, restait PROUVÉ.
 
-Chaque défaut a son test de non-régression (`tests/test_revue_independante.py`, f01 à f19, n01 à n10, t1 à t7).
+  La règle qui en sort est stricte : une donnée interne peut révéler un CONFLIT, jamais prouver. Un contrôle ne vaut
+  que dans le passage qui l'a fait.
+- **5ᵉ revue : A1 à A4 corrigés**, mais six étapes sur huit pouvaient encore être PROUVÉES par la seule mémoire de
+  la mère (rejeux enregistrés, instantané du prestataire) ou par des fichiers de l'auteur (verdict saisi, domaine
+  tapé). Une lecture ne vaut désormais que dans le passage qui l'a faite. Un verdict saisi doit concorder avec la
+  mesure. Un domaine doit être confirmé par le second relevé de la messagerie.
+- **6ᵉ revue** : voir `journal/C-0002.md`.
+
+Chaque défaut a son test de non-régression (`tests/test_revue_independante.py`, f01 à f19, n01 à n10, t1 à t7, a1 à a4, b1 à b5).
 Ces tests ont été rejoués contre le code d'avant correction : ils y échouent bien. Le détail des erreurs, de leurs causes et
 des corrections est dans `journal/C-0002.md`.
 

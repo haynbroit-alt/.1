@@ -240,12 +240,14 @@ def construire(racine: Path, jour: date, lire_stripe: bool = False, rejouer: boo
         lues.append(("prestataire de paiement", "lu en direct" if not r.erreurs else "lu en partie",
                      f"{len(r.erreurs)} lecture(s) refusée(s)" if r.erreurs else ""))
     elif instantane.is_file():
+        # L'instantané est la mémoire de la mère : relu pour mémoire, jamais PROUVÉ (seul --stripe relit la source).
         brut = json.loads(instantane.read_text(encoding="utf-8"))
-        stripe_faits = [Fait(**f) for f in brut["faits"]]
-        encaissements = [tuple(e) for e in brut["encaissements"]]  # type: ignore[misc]
-        virements, grand_livre = brut.get("virements"), brut.get("grand_livre") or {}
-        quand = stripe_faits[0].date[:10] if stripe_faits else "?"
-        lues.append(("prestataire de paiement", f"relevé privé du {quand}", "relancer avec --stripe"))
+        quand = str(brut["faits"][0].get("date", "?"))[:10] if brut.get("faits") else "?"
+        stripe_faits = [Fait(**{**f, "statut": INCONNU, "valeur": None, "preuve": "",
+                                "note": f"relevé du {quand}, non relu dans ce passage"}) for f in brut["faits"]]
+        encaissements, virements, grand_livre = None, None, {}
+        lues.append(("prestataire de paiement", f"non relu (dernier relevé privé du {quand})",
+                     "relancer avec --stripe"))
     else:
         stripe_faits = [Fait("stripe", "encaisse_net", None, INCONNU, "prestataire non relu", prive=True),
                         Fait("stripe", "ventes_payees", None, INCONNU, "prestataire non relu")]
@@ -301,7 +303,7 @@ def construire(racine: Path, jour: date, lire_stripe: bool = False, rejouer: boo
     else:
         resultats = json.loads(etat_rejeux.read_text(encoding="utf-8")) if etat_rejeux.is_file() else []
     depots_rejeux = {r["nom"]: depots.get(r["depot"]) for r in config.get("rejeu", [])}
-    ctrl_suites = [controles.controle_suite(r, depots_rejeux.get(r["nom"])) for r in resultats]
+    ctrl_suites = [controles.controle_suite(r, depots_rejeux.get(r["nom"]), ce_passage=rejouer) for r in resultats]
     ctrls += ctrl_suites
     rattach_rejeux: dict[str, list[str]] = {}
     for o in opportunites:
@@ -401,6 +403,28 @@ def construire(racine: Path, jour: date, lire_stripe: bool = False, rejouer: boo
         return None
 
     arrets = {o.id: chaine.evaluer_arrets(o, consolide, jour, previsions, mesure_a_date) for o in opportunites}
+    # Amélioration : un verdict saisi par l'auteur n'est PROUVÉ que s'il concorde avec la mesure de la mère.
+    a_mesurer = {str(k): str(v) for k, v in (reglages.get("indicateurs_previsions") or {}).items()}
+    for p in previsions or []:
+        if p.reel is None or not p.date_verdict:
+            continue
+        opp = rattachement.get(p.id, TOUTE_L_ENTREPRISE)
+        ind = a_mesurer.get(p.id)
+        if ind is None:
+            statut, detail = INCONNU, "verdict saisi par l'auteur, sans indicateur pour le confirmer"
+        else:
+            m = mesure_a_date(opp, ind, date.fromisoformat(p.date_verdict)) if opp != TOUTE_L_ENTREPRISE else None
+            v = chaine.lire(consolide, opp, ind) if m is None else chaine.Valeur(m[0], m[1])
+            if v.statut != PROUVE or not isinstance(v.valeur, (int, float)):
+                statut, detail = INCONNU, f"{ind} non prouvé dans ce passage"
+            elif float(v.valeur) == p.reel:
+                statut, detail = PROUVE, f"{ind} = {v.valeur:g}, comme le verdict saisi"
+            else:
+                statut, detail = CONFLIT, f"le verdict saisi dit {p.reel:g}, la mesure ({ind}) dit {v.valeur:g}"
+        ctrls.append(controles.Controle(f"verdict:{p.id}", f"Le résultat saisi pour {p.id} est le résultat mesuré",
+                                        "strat-ge-business", "mere:mesure", "verdict saisi contre la mesure à sa date",
+                                        statut, detail, jour.isoformat(), "memoire/PREDICTIONS.csv", opportunite=opp))
+    index = {c.id: (c.statut, c.detail) for c in ctrls}
     etats = {o.id: chaine.etats_chaine(o, consolide, arrets[o.id], index) for o in opportunites}
     for o in opportunites:
         for a in arrets[o.id]:

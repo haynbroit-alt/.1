@@ -251,10 +251,13 @@ def etats_chaine(o: Opportunite, c: Consolide, arrets: list[EtatArret],
                         ("suite en échec" if suite.statut == ECHEC else
                          _note_de(suite) or "aucun rejeu sur le commit actuel"))
     etats["offre"] = _etape_seuil(lire(c, o.id, "offres_actives"), 1, f"{n('offres_actives')} prix actif(s)")
-    etats["acheteur"] = _etape_seuil(lire(c, o.id, "qualifies_verifies"), 1,
-                                     f"contactés {n('prospects_contactes')} (dont réels vérifiés "
-                                     f"{n('prospects_reels')}), réponses {n('reponses')}, qualifiés "
-                                     f"{n('prospects_qualifies')} (vérifiés {n('qualifies_verifies')})")
+    # Acheteur : la qualification est écrite par l'auteur du pipeline ; le second relevé de la messagerie doit au
+    # moins confirmer les réponses et les destinataires dans ce même passage.
+    etats["acheteur"] = verifie(_etape_seuil(lire(c, o.id, "qualifies_verifies"), 1,
+                                             f"contactés {n('prospects_contactes')} (dont réels vérifiés "
+                                             f"{n('prospects_reels')}), réponses {n('reponses')}, qualifiés "
+                                             f"{n('prospects_qualifies')} (vérifiés {n('qualifies_verifies')})"),
+                                "pipeline:recomptage", "réponses non confirmées par un second relevé")
     etats["vente"] = verifie(_etape_seuil(lire(c, o.id, "ventes_payees"), 1, f"{n('ventes_payees')} vente(s) payée(s)"),
                              "argent:grand-livre", "paiement non rapproché du grand livre")
     # Encaissé : l'argent de l'opportunité est reçu ET tout l'argent reçu par l'entreprise est retrouvé au crédit
@@ -276,12 +279,18 @@ def etats_chaine(o: Opportunite, c: Consolide, arrets: list[EtatArret],
     else:
         etats["encaisse"] = (INCONNU, "aucun argent reçu" if enc.statut == PROUVE else (_note_de(enc) or "non relu"))
     verdicts = lire(c, o.id, "verdicts_rendus")
+    confirmes = [ctrl.get(f"verdict:{pid}", (INCONNU, ""))[0] for pid in o.previsions]
     if verdicts.statut == ECHEC:
         etats["amelioration"] = (ECHEC, "verdict échu non rendu")
+    elif CONFLIT in confirmes:
+        etats["amelioration"] = (CONFLIT, "un verdict saisi contredit la mesure")
     elif not o.previsions:
         etats["amelioration"] = (INCONNU, "aucune prévision chiffrée rattachée : rien à apprendre")
+    elif PROUVE in confirmes:
+        etats["amelioration"] = _etape_seuil(verdicts, 1, f"{n('verdicts_rendus')} verdict(s) rendu(s), confirmé(s)"
+                                             " par la mesure")
     else:
-        etats["amelioration"] = _etape_seuil(verdicts, 1, f"{n('verdicts_rendus')} verdict(s) rendu(s)")
+        etats["amelioration"] = (INCONNU, f"{n('verdicts_rendus')} verdict(s) rendu(s), aucun confirmé par la mesure")
     ventes = lire(c, o.id, "ventes_payees")
     etats["croissance"] = _etape_seuil(ventes, 2, "au moins 2 ventes payées")
     for a in arrets:

@@ -13,7 +13,13 @@
 devise = "eur"
 # Les tiers dont une page peut prouver une note sont reconnus dans le code (mere/controles.py, TIERS_RECONNUS), pas
 # ici : le producteur ne choisit pas lui-même ses contrôleurs.
-montants_publics = ["39"]  # prix publics cités dans les libellés de prévision (pas des montants encaissés)
+montants_publics = ["39"]
+
+# Prévisions dont le résultat saisi est confronté à une mesure de la mère (sinon il reste « déclaré par l'auteur »).
+[reglages.indicateurs_previsions]
+"P-20261123-2" = "ventes_payees"
+"P-20261124-1" = "ventes_payees"
+"P-20261124-3" = "reponses"  # prix publics cités dans les libellés de prévision (pas des montants encaissés)
 
 # ------------------------------------------------------------------------------------------------------------
 [[opportunite]]

@@ -119,14 +119,16 @@ propriétaire.
 | Le paiement est acquis | prestataire | fiches de litige | litige ouvert : INCONNU ; perdu : retiré de l'encaissé | INCONNU |
 | Un prospect existe | pipeline | web public | aucun rebond, et le site de son domaine répond | ÉCHEC si rebond, INCONNU sinon |
 | Le pipeline est complet | agent qui l'a rempli | second lecteur de la messagerie | recomptage des envois, réponses, rebonds et défis anti-spam | CONFLIT |
-| Une note « mesuré » est vraie | auteur du portefeuille | page publique ou données brutes | la phrase citée figure dans la page ; la valeur figure dans le fichier versionné. Un texte rédigé n'est pas une preuve | ÉCHEC, CONFLIT ou INCONNU |
+| Une note « mesuré » est vraie | auteur du portefeuille | page d'une autorité publique, ou d'un tiers reconnu dans le code (pas dans le portefeuille) | la phrase citée figure dans la page, relue dans ce passage. Un texte rédigé ne prouve rien ; un fichier de données de l'écosystème peut révéler un CONFLIT, jamais prouver | ÉCHEC, CONFLIT ou INCONNU |
 | La suite d'un module passe | le module | la mère, dans un clone neuf | deux exécutions du commit hors poste de travail, bilans concordants, au moins un test exécuté, dépôt d'origine inchangé | ÉCHEC, CONFLIT si discordant |
 | Un registre dit vrai | le module (NOVARYS, VELYX, poste business) | prestataire et pipeline | rapprochement à la même date, en instants UTC, sur le périmètre de la déclaration | CONFLIT |
 | La mère calcule juste | la mère | NOVARYS Ω | deux exécutions concordantes de la suite et attaques par mutation, au registre chaîné de NOVARYS | INCONNU tant que non prouvé |
 | Le code de la mère est correct | l'agent qui l'a écrit | relecteur indépendant (autre agent, sans le contexte de l'auteur) | attaques reproduites par scripts, puis contre-vérification des corrections | — |
 
 Ce qui reste hors de portée est affiché INCONNU, jamais deviné : visiteurs, coûts, crédit en banque sans relevé,
-sources qui refusent la lecture automatisée.
+sources qui refusent la lecture automatisée. **Un contrôle ne vaut que dans le passage qui l'a fait.** Les résultats
+d'un passage précédent sont relus pour mémoire. Ils ne sont jamais PROUVÉS, car la mère ne se fie pas à sa propre
+mémoire. Seuls un CONFLIT ou un ÉCHEC déjà connus restent affichés.
 
 **Trois réussites à ne pas confondre.** Le tableau les sépare :
 - **l'activité** (envois, prix créés, contrôles lancés) ne prouve rien ;
