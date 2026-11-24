@@ -1,0 +1,13 @@
+[project]
+name = "mere"
+version = "0.1.0"
+description = "L'entreprise mère : une chaîne mesurée de l'opportunité à l'argent encaissé, au-dessus des modules existants."
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "UP", "I"]

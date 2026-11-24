@@ -1,0 +1,62 @@
+[
+ {
+  "nom": "strat-ge-business",
+  "date": "2026-11-24T20:00:38+00:00",
+  "code": 0,
+  "statut": "PROUVÉ",
+  "bilan": "OK",
+  "commit": "292e9ccc17f6",
+  "propre": true,
+  "note": ""
+ },
+ {
+  "nom": "sovereign",
+  "date": "2026-11-24T20:00:38+00:00",
+  "code": 0,
+  "statut": "PROUVÉ",
+  "bilan": "292 passed in 8.10s",
+  "commit": "7cddfbd53ae6",
+  "propre": true,
+  "note": ""
+ },
+ {
+  "nom": "novarys",
+  "date": "2026-11-24T20:00:47+00:00",
+  "code": 0,
+  "statut": "PROUVÉ",
+  "bilan": "OK : 35 preuve(s) chaînée(s), 28 capacité(s), fichiers générés à jour",
+  "commit": "e16b00ed355a",
+  "propre": true,
+  "note": ""
+ },
+ {
+  "nom": "hive",
+  "date": "2026-11-24T20:00:47+00:00",
+  "code": 0,
+  "statut": "PROUVÉ",
+  "bilan": "54 passed, 1 warning in 11.54s",
+  "commit": "8b552da54e4a",
+  "propre": true,
+  "note": ""
+ },
+ {
+  "nom": "velyx",
+  "date": "2026-11-24T20:01:00+00:00",
+  "code": 1,
+  "statut": "ÉCHEC",
+  "bilan": "# pass 229",
+  "commit": "8879058e3b91",
+  "propre": true,
+  "note": ""
+ },
+ {
+  "nom": "tr",
+  "date": "2026-11-24T20:01:03+00:00",
+  "code": 0,
+  "statut": "PROUVÉ",
+  "bilan": "# pass 51",
+  "commit": "67a043cfd198",
+  "propre": true,
+  "note": ""
+ }
+]

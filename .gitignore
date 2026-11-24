@@ -1,0 +1,5 @@
+# Dépôt public : rien de nominatif, de financier réel ni de secret n'est versionné.
+prive/
+__pycache__/
+*.pyc
+.ruff_cache/
