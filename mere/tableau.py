@@ -137,8 +137,9 @@ def construire(racine: Path, jour: date, lire_stripe: bool = False, rejouer: boo
     prospects = controles.prospects_contactes(evenements, domaines)
     recompte = racine / "prive/recomptage_messagerie.json"
     rc = json.loads(recompte.read_text(encoding="utf-8")) if recompte.is_file() else None
-    passage_id = datetime.now(UTC).isoformat(timespec="seconds")  # aucun fichier ne connaît ce passage à l'avance
-    opposable = bool(rc) and rc.get("source") == "lecture-directe-mere" and rc.get("passage") == passage_id
+    # Aucun fichier ne rend un relevé opposable, quel que soit son contenu : seule une lecture de la messagerie faite
+    # par la mère elle-même, en mémoire, dans ce passage, le pourrait. Elle n'existe pas encore (PLAN, geste 10).
+    opposable = False
     # 7 : les domaines du second relevé valent pour leur opportunité seulement.
     vus_messagerie = ({str(o): {str(d).lower() for d in liste} for o, liste in (rc.get("domaines") or {}).items()}
                       if rc and rc.get("domaines") else None)

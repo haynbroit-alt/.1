@@ -162,9 +162,12 @@ de l'auteur passaient tous. La revue a pourtant trouvé :
 - **6ᵉ revue : 5 chemins sur 6 fermés.** Deux chemins restaient ouverts : un verdict « confirmé » par un compte du
   pipeline, et un second relevé de la messagerie fourni comme fichier. Ils sont fermés à leur tour. En
   conséquence, l'étape « acheteur » reste INCONNUE tant que la mère ne lit pas elle-même la messagerie.
-- **7ᵉ revue** : voir `journal/C-0002.md`.
+- **7ᵉ revue : « amélioration » fermé.** Un dernier chemin restait : l'identifiant de passage, prévisible, laissait
+  un fichier se faire passer pour une lecture directe de la messagerie. Il est fermé : aucun fichier ne rend un
+  relevé opposable. Le script d'attaque du relecteur, rejoué sur le code corrigé, ne passe plus. Le relecteur n'a
+  trouvé aucune autre étape PROUVÉE sur des preuves écrites par la mère ou par l'auteur.
 
-Chaque défaut a son test de non-régression (`tests/test_revue_independante.py`, f01 à f19, n01 à n10, t1 à t7, a1 à a4, b1 à b5, c1 et c2).
+Chaque défaut a son test de non-régression (`tests/test_revue_independante.py`, f01 à f19, n01 à n10, t1 à t7, a1 à a4, b1 à b5, c1, c2 et d1 : 128 tests).
 Ces tests ont été rejoués contre le code d'avant correction : ils y échouent bien. Le détail des erreurs, de leurs causes et
 des corrections est dans `journal/C-0002.md`.
 

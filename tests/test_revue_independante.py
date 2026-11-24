@@ -695,3 +695,28 @@ class SixiemeRevue(unittest.TestCase):
         self.assertNotEqual(r.etats["a"]["acheteur"][0], PROUVE)
         self.assertNotEqual(chaine.lire(r.consolide, "a", "prospects_reels").statut, PROUVE)
 
+
+class SeptiemeRevue(unittest.TestCase):
+    """Non-régression du dernier chemin de la 7ᵉ revue (D1) : aucun fichier ne se déclare lecture directe."""
+
+    def test_d1_un_fichier_ne_peut_pas_imiter_une_lecture_directe(self) -> None:
+        from datetime import UTC, datetime
+
+        from test_bout_en_bout import BoutEnBout
+
+        from mere.tableau import construire
+        with tempfile.TemporaryDirectory() as d:
+            racine = BoutEnBout().preparer(Path(d))
+            (racine / "prive/pipeline.csv").write_text(
+                "date;opportunite;ref;etape;canal;preuve;domaine\n2026-11-21T10:00;a;r1;envoi;email;x;insee.fr\n"
+                "2026-11-22T10:00;a;r1;reponse;email;x;insee.fr\n2026-11-22T11:00;a;r1;qualifie;email;x;insee.fr\n",
+                encoding="utf-8")
+            maintenant = datetime.now(UTC)
+            (racine / "prive/recomptage_messagerie.json").write_text(json.dumps(
+                {"lecteur": "relecteur", "source": "lecture-directe-mere",
+                 "passage": maintenant.isoformat(timespec="seconds"), "envois": {"a": 1}, "reponses": 1,
+                 "rebonds": 0, "defis_antispam": 0, "domaines": {"a": ["insee.fr"]}}), encoding="utf-8")
+            r = construire(racine, date(2026, 11, 24), controler=True, lire_url=lambda u: (200, ""))
+        self.assertEqual(next(c for c in r.controles if c.id == "pipeline:recomptage").statut, INCONNU)
+        self.assertNotEqual(r.etats["a"]["acheteur"][0], PROUVE)
+
