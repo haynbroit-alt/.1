@@ -83,5 +83,19 @@ class Bilan(unittest.TestCase):
         self.assertLess(temperature_equilibre(s, ciel, 0.0, 2.0), temperature_equilibre(s, ciel, 0.0, 8.0))
 
 
+
+class PredictionExperience(unittest.TestCase):
+    def test_la_nuit_la_blancheur_ne_compte_pas_le_jour_si(self):
+        # Contrôle prévu par le protocole de l'étape 4 : sans soleil, des surfaces qui ne diffèrent que par leur
+        # absorption solaire ont la même température ; au soleil, la plus blanche est la plus froide.
+        ciel = Ciel(285.15, 4)
+        ordinaire = Surface("ordinaire", absorption_solaire=0.10)
+        blanche = Surface("blanche", absorption_solaire=0.03)
+        self.assertAlmostEqual(temperature_equilibre(ordinaire, ciel, 0.0, 4.0),
+                               temperature_equilibre(blanche, ciel, 0.0, 4.0), places=6)
+        self.assertLess(temperature_equilibre(blanche, ciel, 500.0, 4.0),
+                        temperature_equilibre(ordinaire, ciel, 500.0, 4.0) - 3.0)
+
+
 if __name__ == "__main__":
     unittest.main()
