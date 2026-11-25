@@ -103,7 +103,7 @@
   "methode": "rapprochement montant exact et date ± 4 jours",
   "statut": "PROUVÉ",
   "detail": "aucun virement versé : rien à créditer",
-  "date": "2026-11-25T17:07:20+00:00",
+  "date": "2026-11-25T17:22:14+00:00",
   "reference": "/v1/payouts",
   "opportunite": "*"
  },
@@ -115,8 +115,8 @@
   "methode": "2 exécution(s) dans un clone neuf du commit, bilans comparés",
   "statut": "INCONNU",
   "detail": "dépôt modifié depuis le rejeu : le code présent n'est pas celui qui a été testé",
-  "date": "2026-11-25T17:07:20+00:00",
-  "reference": "64bc77327f09",
+  "date": "2026-11-25T17:22:14+00:00",
+  "reference": "8a730b82acfd",
   "opportunite": "*"
  },
  {
@@ -127,7 +127,7 @@
   "methode": "0 exécution(s) dans un clone neuf du commit, bilans comparés",
   "statut": "INCONNU",
   "detail": "rejeu ancien ou unique, hors clone propre : à refaire avec --rejouer",
-  "date": "2026-11-25T17:07:21+00:00",
+  "date": "2026-11-25T17:22:15+00:00",
   "reference": "",
   "opportunite": "*"
  },
@@ -139,7 +139,7 @@
   "methode": "0 exécution(s) dans un clone neuf du commit, bilans comparés",
   "statut": "INCONNU",
   "detail": "rejeu ancien ou unique, hors clone propre : à refaire avec --rejouer",
-  "date": "2026-11-25T17:07:21+00:00",
+  "date": "2026-11-25T17:22:15+00:00",
   "reference": "",
   "opportunite": "*"
  },
@@ -151,7 +151,7 @@
   "methode": "0 exécution(s) dans un clone neuf du commit, bilans comparés",
   "statut": "INCONNU",
   "detail": "rejeu ancien ou unique, hors clone propre : à refaire avec --rejouer",
-  "date": "2026-11-25T17:07:21+00:00",
+  "date": "2026-11-25T17:22:15+00:00",
   "reference": "",
   "opportunite": "*"
  },
@@ -163,7 +163,7 @@
   "methode": "0 exécution(s) dans un clone neuf du commit, bilans comparés",
   "statut": "INCONNU",
   "detail": "rejeu ancien ou unique, hors clone propre : à refaire avec --rejouer",
-  "date": "2026-11-25T17:07:21+00:00",
+  "date": "2026-11-25T17:22:15+00:00",
   "reference": "",
   "opportunite": "*"
  },
@@ -175,7 +175,7 @@
   "methode": "0 exécution(s) dans un clone neuf du commit, bilans comparés",
   "statut": "INCONNU",
   "detail": "rejeu ancien ou unique, hors clone propre : à refaire avec --rejouer",
-  "date": "2026-11-25T17:07:21+00:00",
+  "date": "2026-11-25T17:22:15+00:00",
   "reference": "",
   "opportunite": "*"
  },
@@ -187,7 +187,7 @@
   "methode": "protocole de preuve Ω",
   "statut": "INCONNU",
   "detail": "registre de NOVARYS absent de cette machine",
-  "date": "2026-11-25T17:07:21+00:00",
+  "date": "2026-11-25T17:22:15+00:00",
   "reference": "",
   "opportunite": "*"
  },

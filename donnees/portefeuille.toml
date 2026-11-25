@@ -74,7 +74,7 @@ nom = "Novarys Conformité, vérification de fichiers de prospection"
 module = "strat-ge-business"
 statut = "gele"
 responsable = "propriétaire (envois) ; businessman (diagnostics)"
-prochaine_action = "Gelé le 25/11 (D-20261125-1) : test jamais exécuté ; archiver les deux prix (propriétaire)"
+prochaine_action = "Gelé le 25/11 (D-20261125-1) : 8 envois le 24/11 hors de la messagerie lue, 0 réponse, aucune relance ; archiver les deux prix (propriétaire)"
 stripe_produits = ["Novarys Conformité"]
 previsions = ["P-20261123-1", "P-20261123-2", "P-20261123-3"]
 declare = { depot = "strat-ge-business", fichier = "memoire/PROJETS.md", ligne = "Novarys Conformité" }

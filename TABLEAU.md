@@ -1,6 +1,6 @@
 # Tableau de bord commercial de l'entreprise mère (public)
 
-> Généré par `python3 -m mere tableau` le 2026-11-25T17:07+00:00 (jour évalué : 2026-11-25). Ne pas modifier à la main.
+> Généré par `python3 -m mere tableau` le 2026-11-25T17:22+00:00 (jour évalué : 2026-11-25). Ne pas modifier à la main.
 > Version publique : les montants sont dans `prive/TABLEAU_PRIVE.md`, jamais versionnés.
 
 ## Verdict

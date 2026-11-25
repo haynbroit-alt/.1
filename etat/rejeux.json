@@ -1,7 +1,7 @@
 [
  {
   "nom": "strat-ge-business",
-  "date": "2026-11-25T17:07:20+00:00",
+  "date": "2026-11-25T17:22:14+00:00",
   "controleur": "mere:clone-propre",
   "essais": [
    {
@@ -13,14 +13,14 @@
     "bilan": "OK"
    }
   ],
-  "commit": "64bc77327f09",
+  "commit": "8a730b82acfd",
   "statut": "PROUVÉ",
   "bilan": "OK",
   "note": "dépôt d'origine modifié : seul le commit est rejoué, les modifications locales non"
  },
  {
   "nom": "sovereign",
-  "date": "2026-11-25T17:07:21+00:00",
+  "date": "2026-11-25T17:22:15+00:00",
   "controleur": "mere:clone-propre",
   "essais": [],
   "commit": "",
@@ -30,7 +30,7 @@
  },
  {
   "nom": "novarys",
-  "date": "2026-11-25T17:07:21+00:00",
+  "date": "2026-11-25T17:22:15+00:00",
   "controleur": "mere:clone-propre",
   "essais": [],
   "commit": "",
@@ -40,7 +40,7 @@
  },
  {
   "nom": "hive",
-  "date": "2026-11-25T17:07:21+00:00",
+  "date": "2026-11-25T17:22:15+00:00",
   "controleur": "mere:clone-propre",
   "essais": [],
   "commit": "",
@@ -50,7 +50,7 @@
  },
  {
   "nom": "velyx",
-  "date": "2026-11-25T17:07:21+00:00",
+  "date": "2026-11-25T17:22:15+00:00",
   "controleur": "mere:clone-propre",
   "essais": [],
   "commit": "",
@@ -60,7 +60,7 @@
  },
  {
   "nom": "tr",
-  "date": "2026-11-25T17:07:21+00:00",
+  "date": "2026-11-25T17:22:15+00:00",
   "controleur": "mere:clone-propre",
   "essais": [],
   "commit": "",
