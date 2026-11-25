@@ -19,18 +19,19 @@ montants_publics = ["39"]
 [reglages.indicateurs_previsions]
 "P-20261123-2" = "ventes_payees"
 "P-20261124-1" = "ventes_payees"
+"P-20261125-1" = "ventes_payees"
 "P-20261124-3" = "reponses"  # prix publics cités dans les libellés de prévision (pas des montants encaissés)
 
 # ------------------------------------------------------------------------------------------------------------
 [[opportunite]]
 id = "obligato"
-nom = "Obligato, affichages obligatoires pré-remplis par SIRET"
+nom = "Obligato, affichages obligatoires remplis pour vous"
 module = "strat-ge-business"
 statut = "actif"
 responsable = "propriétaire (envois, relances) ; businessman (préparation)"
-prochaine_action = "Valider le défi anti-spam en attente, relancer les 10 cabinets le 28/11, créer le prix Stripe avant la première réponse positive"
+prochaine_action = "D-20261125-1 : créer le lien de paiement (propriétaire), 30 conversations directes du 27/11 au 03/12, appeler les 10 cabinets le 28/11 au lieu de les relancer par e-mail"
 stripe_produits = ["Obligato", "affichages obligatoires"]
-previsions = ["P-20261124-1", "P-20261124-2"]
+previsions = ["P-20261124-1", "P-20261124-2", "P-20261125-1"]
 declare = { depot = "strat-ge-business", fichier = "memoire/PROJETS.md", ligne = "Obligato" }
 rejeu = "strat-ge-business"
 
@@ -58,14 +59,22 @@ sens = "min"
 date = "2026-12-24"
 si_echec = "Pas de réactivation de la boutique ; pivot si moins de 3 personnes prêtes à payer sur 30 conversations"
 
+[[opportunite.arret]]
+libelle = "Au moins 1 paiement après 30 conversations directes (D-20261125-1)"
+indicateur = "ventes_payees"
+seuil = 1
+sens = "min"
+date = "2026-12-09"
+si_echec = "Arrêt d'Obligato en direct ; on garde le générateur et l'on ne construit rien de nouveau"
+
 # ------------------------------------------------------------------------------------------------------------
 [[opportunite]]
 id = "novarys-conformite"
 nom = "Novarys Conformité, vérification de fichiers de prospection"
 module = "strat-ge-business"
-statut = "actif"
+statut = "gele"
 responsable = "propriétaire (envois) ; businessman (diagnostics)"
-prochaine_action = "Constater et dater les envois des lots J1 à J3 dans le pipeline : aucun n'est retrouvé dans la messagerie"
+prochaine_action = "Gelé le 25/11 (D-20261125-1) : 8 envois le 24/11 hors de la messagerie lue, 0 réponse, aucune relance ; archiver les deux prix (propriétaire)"
 stripe_produits = ["Novarys Conformité"]
 previsions = ["P-20261123-1", "P-20261123-2", "P-20261123-3"]
 declare = { depot = "strat-ge-business", fichier = "memoire/PROJETS.md", ligne = "Novarys Conformité" }
@@ -102,7 +111,7 @@ nom = "VELYX, nouvelles entreprises du BTP pour courtiers en décennale"
 module = "velyx"
 statut = "test"
 responsable = "propriétaire (réponses) ; VELYX (échantillons)"
-prochaine_action = "Laisser courir les 7 envois du 21/11 jusqu'au verdict du 05/12, répondre à tout retour, aucun nouvel envoi"
+prochaine_action = "Abandon décidé le 25/11 (D-20261125-1) : répondre à tout retour jusqu'au 05/12, puis arrêt"
 stripe_produits = ["nouvelles entreprises du bâtiment"]
 declare = { depot = "strat-ge-business", fichier = "memoire/PROJETS.md", ligne = "Velyx" }
 rejeu = "velyx"
@@ -130,7 +139,7 @@ nom = "Créations d'entreprises par département pour experts-comptables"
 module = "non déclaré"
 statut = "test"
 responsable = "propriétaire (réponses)"
-prochaine_action = "Rattacher cette offre à un module et à un registre ; laisser courir les 8 envois jusqu'au 05/12 sans nouvel envoi"
+prochaine_action = "Abandon décidé le 25/11 (D-20261125-1) : répondre à tout retour jusqu'au 05/12, puis arrêt"
 stripe_produits = []
 
 [opportunite.criteres]
